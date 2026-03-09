@@ -216,8 +216,8 @@ export default function App() {
     return (
       <div id="app">
         <header className="result-header">
-          <button className="btn-secondary result-back-btn" onClick={novoCalculo}>
-            ← Novo Cálculo
+          <button className="btn-secondary result-back-btn" onClick={goBack}>
+            ← Voltar
           </button>
           <h1>Resultado</h1>
         </header>
