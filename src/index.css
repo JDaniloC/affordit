@@ -1684,6 +1684,13 @@ footer {
   line-height: 1.1;
 }
 
+.chart-prazo-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+
 .chart-formula {
   font-size: 0.75rem;
   color: var(--text-muted);

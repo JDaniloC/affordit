@@ -14,6 +14,16 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
 
+function fmtPrazo(meses: number): { principal: string; secundario: string | null } {
+  if (meses <= 0) return { principal: 'Disponível!', secundario: null }
+  if (meses < 12) return { principal: `${meses} ${meses === 1 ? 'mês' : 'meses'}`, secundario: null }
+  const anos = Math.floor(meses / 12)
+  const resto = meses % 12
+  const anosStr = `${anos} ${anos === 1 ? 'ano' : 'anos'}`
+  const principal = resto === 0 ? anosStr : `${anosStr} e ${resto} ${resto === 1 ? 'mês' : 'meses'}`
+  return { principal, secundario: `${meses} meses` }
+}
+
 export default function ChartPrazoVivo({
   itemValor,
   itemNome,
@@ -56,9 +66,19 @@ export default function ChartPrazoVivo({
       <div className="chart-title">Prazo para {itemNome || 'o item'}</div>
 
       {/* Big number */}
-      <div className="chart-big-number" style={{ color: disponivel ? '#10b981' : '#f59e0b' }}>
-        {disponivel ? 'Disponível!' : `${meses} ${meses === 1 ? 'mês' : 'meses'}`}
-      </div>
+      {(() => {
+        const { principal, secundario } = fmtPrazo(meses)
+        return (
+          <>
+            <div className="chart-big-number" style={{ color: disponivel ? '#10b981' : '#f59e0b' }}>
+              {principal}
+            </div>
+            {secundario && (
+              <div className="chart-prazo-sub">{secundario}</div>
+            )}
+          </>
+        )
+      })()}
       <div className="chart-formula">
         {fmtBRL(sobraLazerMensal)}/mês × {meses} = {fmtBRL(sobraLazerMensal * meses)}
       </div>
