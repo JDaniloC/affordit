@@ -1,6 +1,15 @@
 import React from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts'
 import { Envelope } from '../types'
-import { calcLazerPct, calcStatusReserva } from '../logic/index'
 
 interface Props {
   renda: number
@@ -10,24 +19,26 @@ interface Props {
   envelopes: Envelope[]
 }
 
-const CUSTO_COLOR = '#ef4444'
-const LAZER_COLOR = '#10b981'
-const ENVELOPE_COLOR = '#7c3aed'
+const fmtBRL = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
-const STATUS_COLOR: Record<string, string> = {
-  perigo: '#ef4444',
-  atencao: '#f59e0b',
-  seguranca: '#10b981',
+const fmtK = (v: number) => {
+  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `R$${(v / 1_000).toFixed(0)}k`
+  return `R$${v.toFixed(0)}`
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  perigo: 'Perigo',
-  atencao: 'Atenção',
-  seguranca: 'Segurança',
+function mesLabel(m: number): string {
+  if (m < 12) return `${m}m`
+  const a = Math.floor(m / 12)
+  const r = m % 12
+  return r === 0 ? `${a}a` : `${a}a${r}m`
 }
 
-function fmt(n: number) {
-  return n.toFixed(1) + '%'
+interface Ponto {
+  mes: number
+  base: number   // portion building toward reserve (0 → reservaAlvo)
+  livre: number  // portion freely above reserve
 }
 
 export default function ChartReservaViva({
@@ -35,103 +46,212 @@ export default function ChartReservaViva({
   custo,
   patrimonio,
   reservaMeses,
-  envelopes,
 }: Props) {
-  if (renda <= 0) {
-    return (
-      <div className="chart-panel-inner">
-        <div className="chart-title">Distribuição & Reserva</div>
-        <div className="chart-placeholder">Informe sua renda para ver a distribuição.</div>
-      </div>
-    )
+  const aporte = renda - custo
+  const reservaAlvo = custo * reservaMeses
+
+  // --- month when reserve is first reached ---
+  let mesReserva: number | null = null
+  if (patrimonio >= reservaAlvo) {
+    mesReserva = 0
+  } else if (aporte > 0) {
+    mesReserva = Math.ceil((reservaAlvo - patrimonio) / aporte)
   }
 
-  const lazerPct = calcLazerPct(renda, custo, envelopes)
-  const custoPct = Math.min(100, (custo / renda) * 100)
-  const envelopesPct = envelopes.reduce((s, e) => s + (e.pct || 0), 0)
-  // cap so they sum to 100
-  const totalUsed = custoPct + envelopesPct
-  const lazerDisplay = Math.max(0, 100 - totalUsed)
+  // --- horizon: show reserve + buffer, min 24 months ---
+  const horizon =
+    mesReserva !== null
+      ? Math.min(120, Math.max(24, mesReserva + 18))
+      : Math.min(120, Math.max(24, reservaMeses * 4))
 
-  const reservaAlvo = custo * reservaMeses
-  const status = calcStatusReserva(patrimonio, reservaAlvo)
-  const termPct = reservaAlvo > 0 ? Math.min(100, (patrimonio / reservaAlvo) * 100) : 100
-  const statusColor = STATUS_COLOR[status]
+  // --- build data series ---
+  const data: Ponto[] = Array.from({ length: horizon + 1 }, (_, m) => {
+    const total = patrimonio + m * aporte
+    return {
+      mes: m,
+      base: Math.min(Math.max(0, total), reservaAlvo),
+      livre: Math.max(0, total - reservaAlvo),
+    }
+  })
+
+  // --- X-axis ticks: ~6 labels ---
+  const step = Math.ceil(horizon / 6)
+  const xTicks = Array.from({ length: Math.floor(horizon / step) + 1 }, (_, i) => i * step)
+
+  const hasGrowth = renda > 0 && aporte > 0
+  const hasData = renda > 0
 
   return (
     <div className="chart-panel-inner">
-      <div className="chart-title">Distribuição & Reserva</div>
+      <div className="chart-title">Crescimento do patrimônio</div>
 
-      {/* Stacked bar */}
-      <div style={{ marginBottom: 16 }}>
-        <div className="chart-bar-label">Distribuição da renda</div>
-        <div className="chart-stacked-bar">
-          {custoPct > 0 && (
-            <div
-              className="chart-stacked-seg"
-              style={{ width: fmt(custoPct), background: CUSTO_COLOR }}
-              title={`Custo de vida ${fmt(custoPct)}`}
-            />
-          )}
-          {envelopesPct > 0 && (
-            <div
-              className="chart-stacked-seg"
-              style={{ width: fmt(Math.min(envelopesPct, 100 - custoPct)), background: ENVELOPE_COLOR }}
-              title={`Envelopes ${fmt(envelopesPct)}`}
-            />
-          )}
-          {lazerDisplay > 0 && (
-            <div
-              className="chart-stacked-seg"
-              style={{ width: fmt(lazerDisplay), background: LAZER_COLOR }}
-              title={`Lazer ${fmt(lazerDisplay)}`}
-            />
-          )}
-        </div>
-        <div className="chart-stacked-legend">
-          {custoPct > 0 && (
-            <span>
-              <span className="chart-legend-dot" style={{ background: CUSTO_COLOR }} />
-              Custo {fmt(custoPct)}
-            </span>
-          )}
-          {envelopesPct > 0 && (
-            <span>
-              <span className="chart-legend-dot" style={{ background: ENVELOPE_COLOR }} />
-              Env. {fmt(envelopesPct)}
-            </span>
-          )}
-          <span>
-            <span className="chart-legend-dot" style={{ background: LAZER_COLOR }} />
-            Lazer {fmt(lazerPct)}
-          </span>
-        </div>
-      </div>
+      {!hasData && (
+        <div className="chart-placeholder">Informe renda e custo de vida para ver o gráfico.</div>
+      )}
 
-      {/* Reserve thermometer */}
-      <div style={{ marginTop: 8 }}>
-        <div className="chart-bar-label">
-          Reserva de emergência —{' '}
-          <span style={{ color: statusColor, fontWeight: 700 }}>{STATUS_LABEL[status]}</span>
-        </div>
-        <div className="chart-therm-bar">
-          <div
-            className="chart-therm-fill"
-            style={{ width: fmt(termPct), background: statusColor }}
-          />
-        </div>
-        <div className="chart-therm-labels">
-          <span>
-            R$ {patrimonio.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-          </span>
-          <span>
-            Meta: R$ {reservaAlvo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-          </span>
-        </div>
-        <div className="chart-therm-sublabel">
-          {reservaMeses} {reservaMeses === 1 ? 'mês' : 'meses'} de custo de vida
-        </div>
-      </div>
+      {hasData && (
+        <>
+          {/* Reserve reached badge */}
+          {mesReserva !== null && mesReserva > 0 && (
+            <div className="reserva-badge">
+              🎯 Reserva alcançada no{' '}
+              <strong>mês {mesReserva}</strong>{' '}
+              <span className="reserva-badge-sub">({mesLabel(mesReserva)})</span>
+            </div>
+          )}
+          {mesReserva === 0 && (
+            <div className="reserva-badge reserva-badge-ok">
+              ✅ Reserva de emergência já completa
+            </div>
+          )}
+          {mesReserva === null && (
+            <div className="reserva-badge reserva-badge-warn">
+              ⚠ Renda não cobre as despesas — patrimônio não cresce
+            </div>
+          )}
+
+          {/* Chart */}
+          <div style={{ userSelect: 'none' }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradBase" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.5} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="gradLivre" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.7} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.15} />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+
+                <XAxis
+                  dataKey="mes"
+                  ticks={xTicks}
+                  tickFormatter={mesLabel}
+                  tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={fmtK}
+                  tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={52}
+                />
+
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    const base = (payload.find(p => p.dataKey === 'base')?.value as number) ?? 0
+                    const livre = (payload.find(p => p.dataKey === 'livre')?.value as number) ?? 0
+                    const total = base + livre
+                    return (
+                      <div className="chart-tooltip">
+                        <div className="chart-tooltip-label">Mês {label} ({mesLabel(label as number)})</div>
+                        <div style={{ color: '#f59e0b' }}>Reserva: {fmtBRL(base)}</div>
+                        {livre > 0 && <div style={{ color: '#10b981' }}>Livre: {fmtBRL(livre)}</div>}
+                        <div style={{ color: 'var(--text)', fontWeight: 700 }}>Total: {fmtBRL(total)}</div>
+                      </div>
+                    )
+                  }}
+                />
+
+                {/* Reserve target reference line */}
+                {reservaAlvo > 0 && (
+                  <ReferenceLine
+                    y={reservaAlvo}
+                    stroke="#f59e0b"
+                    strokeDasharray="5 3"
+                    strokeWidth={1.5}
+                    label={{
+                      value: `Meta ${fmtK(reservaAlvo)}`,
+                      position: 'insideTopRight',
+                      fill: '#f59e0b',
+                      fontSize: 10,
+                    }}
+                  />
+                )}
+
+                {/* Vertical line when reserve is reached */}
+                {mesReserva !== null && mesReserva > 0 && mesReserva <= horizon && (
+                  <ReferenceLine
+                    x={mesReserva}
+                    stroke="rgba(255,255,255,0.25)"
+                    strokeDasharray="4 3"
+                    strokeWidth={1}
+                    label={{
+                      value: `Mês ${mesReserva}`,
+                      position: 'insideTopLeft',
+                      fill: 'rgba(255,255,255,0.45)',
+                      fontSize: 10,
+                    }}
+                  />
+                )}
+
+                {/* Building reserve (amber) */}
+                <Area
+                  type="monotone"
+                  dataKey="base"
+                  stackId="1"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  fill="url(#gradBase)"
+                  dot={false}
+                  activeDot={false}
+                  name="Reserva"
+                />
+
+                {/* Free money above reserve (green wave) */}
+                <Area
+                  type="monotone"
+                  dataKey="livre"
+                  stackId="1"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fill="url(#gradLivre)"
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#10b981' }}
+                  name="Dinheiro livre"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Footer stats */}
+          <div className="reserva-stats">
+            <div className="reserva-stat">
+              <span className="reserva-stat-label">Aporte mensal</span>
+              <span
+                className="reserva-stat-valor"
+                style={{ color: aporte >= 0 ? '#10b981' : '#ef4444' }}
+              >
+                {fmtBRL(aporte)}
+              </span>
+            </div>
+            <div className="reserva-stat">
+              <span className="reserva-stat-label">Meta da reserva</span>
+              <span className="reserva-stat-valor" style={{ color: '#f59e0b' }}>
+                {fmtBRL(reservaAlvo)}
+              </span>
+            </div>
+            <div className="reserva-stat">
+              <span className="reserva-stat-label">Patrimônio atual</span>
+              <span className="reserva-stat-valor">{fmtBRL(patrimonio)}</span>
+            </div>
+          </div>
+
+          {!hasGrowth && renda > 0 && (
+            <p className="reserva-aviso">
+              Sua renda (R${renda.toLocaleString('pt-BR')}) não cobre o custo de vida
+              (R${custo.toLocaleString('pt-BR')}). Não há sobra para construir a reserva.
+            </p>
+          )}
+        </>
+      )}
     </div>
   )
 }
