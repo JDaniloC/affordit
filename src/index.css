@@ -1381,6 +1381,123 @@ footer {
   line-height: 1.6;
 }
 
+/* ---- ChartDistribuicao (BRL breakdown) ---- */
+.dist-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.dist-pie-wrap {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.dist-pie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  pointer-events: none;
+  line-height: 1.2;
+}
+
+.dist-pie-center span {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dist-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+  background: rgba(255,255,255,0.04);
+  margin-bottom: 6px;
+}
+
+.dist-bar-segment {
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.dist-bar-total {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.dist-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dist-row {}
+
+.dist-row-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+
+.dist-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dist-row-nome {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dist-row-pct {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.dist-row-valor {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dist-row-bar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.dist-row-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  opacity: 0.7;
+}
+
 /* Donut center label */
 .donut-center {
   position: absolute;

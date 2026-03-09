@@ -6,17 +6,19 @@ import NumericInput from './NumericInput'
 interface Props {
   renda: number
   onRendaChange: (v: number) => void
+  custo: number
+  onCustoChange: (v: number) => void
   envelopes: Envelope[]
   onEnvelopesChange: React.Dispatch<React.SetStateAction<Envelope[]>>
-  custo: number
 }
 
 export default function ConfigSection({
   renda,
   onRendaChange,
+  custo,
+  onCustoChange,
   envelopes,
   onEnvelopesChange,
-  custo,
 }: Props) {
   const total = envelopes.reduce((acc, e) => acc + (e.pct || 0), 0)
   const lazer = calcLazerPct(renda, custo, envelopes)
@@ -58,8 +60,21 @@ export default function ConfigSection({
       </div>
 
       <div className="field">
+        <label htmlFor="custo-vida">Custo de Vida Mensal</label>
+        <div className="input-group">
+          <span className="unit prefix">R$</span>
+          <NumericInput
+            id="custo-vida"
+            value={custo}
+            onChange={onCustoChange}
+            placeholder="0,00"
+          />
+        </div>
+      </div>
+
+      <div className="field">
         <label>Envelopes (Buckets)</label>
-        <p className="field-hint">Como você divide sua renda em categorias?</p>
+        <p className="field-hint">Como você divide o restante da renda em categorias?</p>
         <div id="envelopes-list">
           {envelopes.map(({ id, nome, pct }) => (
             <div key={id} className="envelope-item">

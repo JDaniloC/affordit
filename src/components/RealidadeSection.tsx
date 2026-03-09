@@ -2,8 +2,6 @@ import React from 'react'
 import NumericInput from './NumericInput'
 
 interface Props {
-  custo: number
-  onCustoChange: (v: number) => void
   patrimonio: number
   onPatrimonioChange: (v: number) => void
   reservaMeses: number
@@ -11,8 +9,6 @@ interface Props {
 }
 
 export default function RealidadeSection({
-  custo,
-  onCustoChange,
   patrimonio,
   onPatrimonioChange,
   reservaMeses,
@@ -21,14 +17,6 @@ export default function RealidadeSection({
   return (
     <section className="card" id="section-realidade">
       <h2>Sua Realidade Financeira</h2>
-
-      <div className="field">
-        <label htmlFor="custo-vida">Custo de Vida Mensal</label>
-        <div className="input-group">
-          <span className="unit prefix">R$</span>
-          <NumericInput id="custo-vida" value={custo} onChange={onCustoChange} placeholder="0,00" />
-        </div>
-      </div>
 
       <div className="field">
         <label htmlFor="patrimonio">Patrimônio Atual Guardado</label>

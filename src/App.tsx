@@ -310,16 +310,15 @@ export default function App() {
               <ConfigSection
                 renda={renda}
                 onRendaChange={setRenda}
+                custo={custo}
+                onCustoChange={setCusto}
                 envelopes={envelopes}
                 onEnvelopesChange={setEnvelopes}
-                custo={custo}
               />
             )}
 
             {step === 2 && (
               <RealidadeSection
-                custo={custo}
-                onCustoChange={setCusto}
                 patrimonio={patrimonio}
                 onPatrimonioChange={setPatrimonio}
                 reservaMeses={reservaMeses}
