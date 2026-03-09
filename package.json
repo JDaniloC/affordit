@@ -1,0 +1,31 @@
+{
+  "name": "affordit",
+  "version": "1.0.0",
+  "description": "**FinDebug** é um simulador de decisão financeira *client-side* projetado para desenvolvedores e profissionais de tecnologia. Diferente de gerenciadores de gastos tradicionais, o FinDebug foca em responder a pergunta: **\"Eu posso comprar isso agora?\"**",
+  "main": "app.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "pathe": "^2.0.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^3.8.0"
+  }
+}
