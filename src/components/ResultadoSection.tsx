@@ -7,10 +7,18 @@ import {
   MetaFinanceiraResult,
   CustoFinanciamentoResult,
   ValidarPassivoAltoValorResult,
+  ScoreSaudeResult,
+  NivelSaude,
   CRITERIOS,
 } from '../logic/index'
 import GraficoPatrimonio from './GraficoPatrimonio'
 import GraficoMeta from './GraficoMeta'
+
+const NIVEL_CONFIG: Record<NivelSaude, { label: string; color: string }> = {
+  boa:     { label: 'Boa',    color: '#10b981' },
+  regular: { label: 'Regular', color: '#f59e0b' },
+  atencao: { label: 'Atenção', color: '#ef4444' },
+}
 
 interface Props {
   resultado: SimularResult
@@ -36,6 +44,9 @@ interface Props {
   entradaValor: number
   despesaSubstituida: number
   parcelasExistentes: number
+  // P1 features
+  rendimentoAnual: number
+  scoreSaude: ScoreSaudeResult
   onRefazer: () => void
 }
 
@@ -327,6 +338,8 @@ export default function ResultadoSection({
   entradaValor,
   despesaSubstituida,
   parcelasExistentes,
+  rendimentoAnual,
+  scoreSaude,
   onRefazer,
 }: Props) {
   const { veredito, debug } = resultado
@@ -405,6 +418,7 @@ export default function ResultadoSection({
           itemNome={itemNome}
           parcelas={parcelas}
           reservaAlvo={reservaAlvo}
+          rendimentoAnual={rendimentoAnual}
         />
       )}
 
@@ -421,6 +435,7 @@ export default function ResultadoSection({
             parcelas={parcelas}
             metaValor={metaValor}
             metaResult={metaResult}
+            rendimentoAnual={rendimentoAnual}
           />
         )}
 
@@ -503,6 +518,27 @@ export default function ResultadoSection({
           <strong>ℹ️ Parcelas em andamento:</strong> {fmt(parcelasExistentes)}/mês descontados do balde de lazer nesta simulação.
         </div>
       )}
+
+      {/* ── Score de saúde financeira (P1.5) ── */}
+      {(() => {
+        const cfg = NIVEL_CONFIG[scoreSaude.nivel]
+        return (
+          <div className="saude-resultado-card" style={{ borderColor: cfg.color + '44' }}>
+            <div className="saude-resultado-header">
+              <span className="saude-resultado-titulo">Saúde Financeira</span>
+              <span className="saude-resultado-nivel" style={{ color: cfg.color }}>
+                {cfg.label} — {scoreSaude.pontuacao}/100
+              </span>
+            </div>
+            <div className="saude-resultado-barra-bg">
+              <div
+                className="saude-resultado-barra-fill"
+                style={{ width: `${scoreSaude.pontuacao}%`, background: cfg.color }}
+              />
+            </div>
+          </div>
+        )
+      })()}
 
       <button
         className="btn-secondary"

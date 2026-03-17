@@ -19,6 +19,7 @@ interface Props {
   itemNome: string
   parcelas: number
   reservaAlvo: number
+  rendimentoAnual?: number
 }
 
 const fmt = (v: number) =>
@@ -37,8 +38,14 @@ export default function GraficoPatrimonio({
   itemNome,
   parcelas,
   reservaAlvo,
+  rendimentoAnual = 0,
 }: Props) {
   const MESES = 36
+
+  // Converte % a.a. para % a.m. pelo regime composto: i_m = (1 + i_a)^(1/12) - 1
+  const taxaMensalEfetiva = rendimentoAnual > 0
+    ? (Math.pow(1 + rendimentoAnual / 100, 1 / 12) - 1) * 100
+    : 0
 
   const { semCompra, comCompra } = useMemo(
     () =>
@@ -48,8 +55,9 @@ export default function GraficoPatrimonio({
         MESES,
         itemValor,
         Math.max(1, parcelas),
+        taxaMensalEfetiva,
       ),
-    [patrimonioInicial, sobraLazerMensal, itemValor, parcelas],
+    [patrimonioInicial, sobraLazerMensal, itemValor, parcelas, taxaMensalEfetiva],
   )
 
   const data = useMemo(
@@ -96,6 +104,7 @@ export default function GraficoPatrimonio({
           <div className="grafico-titulo">Projeção de Patrimônio</div>
           <div className="grafico-subtitulo">
             Próximos 36 meses — com e sem a compra de {itemNome || 'o item'}
+            {rendimentoAnual > 0 && ` · rendimento ${rendimentoAnual}% a.a.`}
           </div>
         </div>
         {mesMeta !== null && (

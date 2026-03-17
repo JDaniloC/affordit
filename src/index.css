@@ -2414,6 +2414,147 @@ footer {
 }
 
 /* ===================================================================
+   P1.5 — SCORE DE SAÚDE FINANCEIRA
+   =================================================================== */
+
+/* Widget no RealidadeSection */
+.saude-card {
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.saude-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.saude-titulo {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.saude-nivel {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.saude-barra-wrap {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saude-barra-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.saude-barra-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.saude-pontuacao {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.saude-fatores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saude-fator {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.saude-fator-icone {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.saude-fator-corpo {
+  flex: 1;
+}
+
+.saude-fator-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.saude-fator-pts {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.saude-fator-desc {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Card compacto no ResultadoSection */
+.saude-resultado-card {
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.saude-resultado-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.saude-resultado-titulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.saude-resultado-nivel {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.saude-resultado-barra-bg {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.saude-resultado-barra-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+
+/* ===================================================================
    P0.3 — PARCELAS EXISTENTES notice (ResultadoSection)
    =================================================================== */
 

@@ -29,4 +29,6 @@ export interface AppState {
   taxaJuros: number           // taxa de juros mensal em % (0 = sem juros)
   // P0.3 — parcelas existentes
   parcelasExistentes: number  // parcelas mensais já comprometidas no orçamento
+  // P1.4 — rendimento da reserva / juros compostos
+  rendimentoAnual: number     // taxa de rendimento anual em % a.a. (0 = sem rendimento)
 }

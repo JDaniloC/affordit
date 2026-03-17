@@ -392,6 +392,7 @@ function calcImpactoMetaFinanceira(
   itemValor: number,
   parcelas: number,
   meta: number,
+  taxaMensal: number = 0,
 ): MetaFinanceiraResult {
   if (meta <= 0) {
     return { mesesSemCompra: null, mesesComCompra: null, atrasoMeses: null, metaJaAtingida: false }
@@ -406,7 +407,7 @@ function calcImpactoMetaFinanceira(
   }
 
   const { semCompra, comCompra } = calcImpactoCompraNoPatrimonio(
-    patrimonio, aporteMensal, HORIZONTE_META, itemValor, parcelas,
+    patrimonio, aporteMensal, HORIZONTE_META, itemValor, parcelas, taxaMensal,
   )
 
   const mesesSemCompra = calcMesQueAtingeMeta(semCompra, meta)
@@ -734,19 +735,30 @@ function resolverTipoCompra(
 // ===========================================================
 
 /**
- * Retorna um array com o patrimônio ao final de cada mês (crescimento linear).
+ * Retorna um array com o patrimônio ao final de cada mês.
  * @param patrimonioInicial - patrimônio atual
  * @param aporteMensal - quanto é poupado/investido por mês
  * @param meses - número de meses a projetar
+ * @param taxaMensal - rendimento mensal em % (ex: 1 = 1% a.m.). 0 = crescimento linear.
  */
 function calcProjecaoPatrimonio(
   patrimonioInicial: number,
   aporteMensal: number,
   meses: number,
+  taxaMensal: number = 0,
 ): number[] {
   const result: number[] = []
-  for (let i = 1; i <= meses; i++) {
-    result.push(patrimonioInicial + i * aporteMensal)
+  if (taxaMensal <= 0) {
+    for (let i = 1; i <= meses; i++) {
+      result.push(patrimonioInicial + i * aporteMensal)
+    }
+  } else {
+    const r = taxaMensal / 100
+    let acumulado = patrimonioInicial
+    for (let i = 1; i <= meses; i++) {
+      acumulado = acumulado * (1 + r) + aporteMensal
+      result.push(acumulado)
+    }
   }
   return result
 }
@@ -759,6 +771,7 @@ function calcProjecaoPatrimonio(
  * @param meses
  * @param itemValor - valor total do item
  * @param parcelas - número de parcelas (1 = à vista)
+ * @param taxaMensal - rendimento mensal em % (ex: 1 = 1% a.m.). 0 = linear.
  */
 function calcImpactoCompraNoPatrimonio(
   patrimonioInicial: number,
@@ -766,17 +779,19 @@ function calcImpactoCompraNoPatrimonio(
   meses: number,
   itemValor: number,
   parcelas: number,
+  taxaMensal: number = 0,
 ): { semCompra: number[]; comCompra: number[] } {
-  const semCompra = calcProjecaoPatrimonio(patrimonioInicial, aporteMensal, meses)
+  const semCompra = calcProjecaoPatrimonio(patrimonioInicial, aporteMensal, meses, taxaMensal)
 
   const parcelaValor = parcelas > 1 ? itemValor / parcelas : 0
   const patrimonioAposEntrada = parcelas === 1 ? patrimonioInicial - itemValor : patrimonioInicial
+  const r = taxaMensal > 0 ? taxaMensal / 100 : 0
 
   const comCompra: number[] = []
   let acumulado = patrimonioAposEntrada
   for (let i = 1; i <= meses; i++) {
     const aporteEfetivo = i <= parcelas ? aporteMensal - parcelaValor : aporteMensal
-    acumulado += aporteEfetivo
+    acumulado = r > 0 ? acumulado * (1 + r) + aporteEfetivo : acumulado + aporteEfetivo
     comCompra.push(acumulado)
   }
 
@@ -822,9 +837,115 @@ function calcAtrasoCompra(
   return mesCom - mesSem
 }
 
+// ===========================================================
+// SCORE DE SAÚDE FINANCEIRA (P1.5)
+// ===========================================================
+
+export type NivelSaude = 'boa' | 'regular' | 'atencao'
+
+export interface FatorSaude {
+  label: string
+  ok: boolean
+  descricao: string
+  pontos: number
+  maxPontos: number
+}
+
+export interface ScoreSaudeResult {
+  nivel: NivelSaude
+  pontuacao: number   // 0–100
+  fatores: FatorSaude[]
+}
+
+/**
+ * Calcula um score de saúde financeira (0–100) baseado nos dados já disponíveis.
+ * Ideal para exibição no Step 2 — motiva o usuário a melhorar antes de comprar.
+ */
+function calcScoreSaude(
+  renda: number,
+  custo: number,
+  patrimonio: number,
+  reservaMeses: number,
+  parcelasExistentes: number,
+  envelopes: Envelope[],
+): ScoreSaudeResult {
+  const fatores: FatorSaude[] = []
+
+  // ── 1. Reserva de emergência (40 pts) ──
+  const reservaAlvo = custo * reservaMeses
+  const statusRes = calcStatusReserva(patrimonio, reservaAlvo)
+  const pontosReserva = statusRes === 'seguranca' ? 40 : statusRes === 'atencao' ? 20 : 0
+  fatores.push({
+    label: 'Reserva de emergência',
+    ok: statusRes === 'seguranca',
+    pontos: pontosReserva,
+    maxPontos: 40,
+    descricao:
+      statusRes === 'seguranca'
+        ? `Reserva completa (${reservaMeses} meses). Você tem segurança para imprevistos.`
+        : statusRes === 'atencao'
+        ? `Reserva parcial: ${patrimonio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })} de ${reservaAlvo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}. Continue poupando.`
+        : `Reserva abaixo de 50% da meta. Priorize isso antes de qualquer compra.`,
+  })
+
+  // ── 2. Custo de vida (25 pts) ──
+  const custoPct = renda > 0 ? (custo / renda) * 100 : 100
+  const pontosCusto = custoPct <= 50 ? 25 : custoPct <= 70 ? 12 : 0
+  fatores.push({
+    label: 'Custo de vida',
+    ok: custoPct <= 50,
+    pontos: pontosCusto,
+    maxPontos: 25,
+    descricao:
+      custoPct <= 50
+        ? `Custo de vida em ${custoPct.toFixed(0)}% da renda — saudável (≤ 50%).`
+        : custoPct <= 70
+        ? `Custo de vida em ${custoPct.toFixed(0)}% da renda — elevado (ideal: ≤ 50%).`
+        : `Custo de vida em ${custoPct.toFixed(0)}% da renda — crítico. Há pouco espaço para poupar.`,
+  })
+
+  // ── 3. Sobra de lazer (20 pts) ──
+  const lazerPct = calcLazerPct(renda, custo, envelopes)
+  const pontosLazer = lazerPct >= 20 ? 20 : lazerPct >= 10 ? 10 : 0
+  fatores.push({
+    label: 'Sobra mensal',
+    ok: lazerPct >= 20,
+    pontos: pontosLazer,
+    maxPontos: 20,
+    descricao:
+      lazerPct >= 20
+        ? `${lazerPct.toFixed(0)}% da renda disponível para poupança e lazer.`
+        : lazerPct >= 10
+        ? `Sobra de ${lazerPct.toFixed(0)}% — apertado. Tente liberar mais margem.`
+        : `Sobra de ${lazerPct.toFixed(0)}% — insuficiente. Sem margem para poupar ou imprevistos.`,
+  })
+
+  // ── 4. Parcelas existentes (15 pts) ──
+  const parcelasPct = renda > 0 ? (parcelasExistentes / renda) * 100 : (parcelasExistentes > 0 ? 100 : 0)
+  const pontosParcelas = parcelasExistentes === 0 ? 15 : parcelasPct <= 10 ? 10 : parcelasPct <= 20 ? 5 : 0
+  fatores.push({
+    label: 'Parcelas em andamento',
+    ok: parcelasExistentes === 0,
+    pontos: pontosParcelas,
+    maxPontos: 15,
+    descricao:
+      parcelasExistentes === 0
+        ? 'Sem parcelas em andamento. Excelente!'
+        : parcelasPct <= 10
+        ? `${parcelasExistentes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}/mês em parcelas (${parcelasPct.toFixed(0)}% da renda) — controlado.`
+        : `${parcelasExistentes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}/mês em parcelas (${parcelasPct.toFixed(0)}% da renda) — comprometido. Evite novos parcelamentos.`,
+  })
+
+  const pontuacao = fatores.reduce((sum, f) => sum + f.pontos, 0)
+  const nivel: NivelSaude = pontuacao >= 75 ? 'boa' : pontuacao >= 40 ? 'regular' : 'atencao'
+
+  return { nivel, pontuacao, fatores }
+}
+
 export {
   calcCustoComJuros,
   validarPassivoAltoValor,
+  calcScoreSaude,
   calcImpactoMetaFinanceira,
   simularLogica,
   calcLazerPct,

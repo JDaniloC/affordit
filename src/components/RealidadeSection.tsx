@@ -1,5 +1,6 @@
 import React from 'react'
 import NumericInput from './NumericInput'
+import { ScoreSaudeResult, NivelSaude } from '../logic/index'
 
 interface Props {
   patrimonio: number
@@ -8,6 +9,15 @@ interface Props {
   onReservaMesesChange: (v: number) => void
   metaValor: number
   onMetaValorChange: (v: number) => void
+  rendimentoAnual: number
+  onRendimentoAnualChange: (v: number) => void
+  scoreSaude: ScoreSaudeResult
+}
+
+const NIVEL_CONFIG: Record<NivelSaude, { label: string; color: string; bg: string; border: string }> = {
+  boa:     { label: 'Boa',    color: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.25)' },
+  regular: { label: 'Regular', color: '#f59e0b', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.25)' },
+  atencao: { label: 'Atenção', color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.25)' },
 }
 
 export default function RealidadeSection({
@@ -17,7 +27,12 @@ export default function RealidadeSection({
   onReservaMesesChange,
   metaValor,
   onMetaValorChange,
+  rendimentoAnual,
+  onRendimentoAnualChange,
+  scoreSaude,
 }: Props) {
+  const cfg = NIVEL_CONFIG[scoreSaude.nivel]
+
   return (
     <section className="card" id="section-realidade">
       <h2>Sua Realidade Financeira</h2>
@@ -65,6 +80,63 @@ export default function RealidadeSection({
             placeholder="0,00"
             defaultValue={0}
           />
+        </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="rendimento-anual">
+          Rendimento estimado da reserva{' '}
+          <span className="hint-inline">(opcional — 0 = sem rendimento)</span>
+        </label>
+        <div className="input-group">
+          <NumericInput
+            id="rendimento-anual"
+            value={rendimentoAnual}
+            onChange={onRendimentoAnualChange}
+            min={0}
+            step={0.5}
+            placeholder="0"
+          />
+          <span className="unit">% a.a.</span>
+        </div>
+        <p className="field-hint">
+          Selic/CDI hoje está em torno de 10–13% a.a. Use 0 para calcular sem rendimento (conservador). A conversão para taxa mensal é feita automaticamente pelo regime composto.
+        </p>
+      </div>
+
+      {/* Score de saúde financeira (P1.5) */}
+      <div className="saude-card" style={{ background: cfg.bg, borderColor: cfg.border }}>
+        <div className="saude-header">
+          <div className="saude-titulo">Saúde Financeira</div>
+          <div className="saude-nivel" style={{ color: cfg.color }}>{cfg.label}</div>
+          <div className="saude-barra-wrap">
+            <div className="saude-barra-bg">
+              <div
+                className="saude-barra-fill"
+                style={{
+                  width: `${scoreSaude.pontuacao}%`,
+                  background: cfg.color,
+                }}
+              />
+            </div>
+            <span className="saude-pontuacao" style={{ color: cfg.color }}>
+              {scoreSaude.pontuacao}/100
+            </span>
+          </div>
+        </div>
+        <div className="saude-fatores">
+          {scoreSaude.fatores.map((f) => (
+            <div key={f.label} className={`saude-fator${f.ok ? ' saude-fator-ok' : ' saude-fator-nok'}`}>
+              <span className="saude-fator-icone">{f.ok ? '✅' : f.pontos > 0 ? '⚠️' : '❌'}</span>
+              <div className="saude-fator-corpo">
+                <div className="saude-fator-label">
+                  {f.label}
+                  <span className="saude-fator-pts">+{f.pontos}/{f.maxPontos}</span>
+                </div>
+                <div className="saude-fator-desc">{f.descricao}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

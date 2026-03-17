@@ -10,12 +10,14 @@ import {
   calcImpactoMetaFinanceira,
   calcCustoComJuros,
   validarPassivoAltoValor,
+  calcScoreSaude,
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
   MetaFinanceiraResult,
   CustoFinanciamentoResult,
   ValidarPassivoAltoValorResult,
+  ScoreSaudeResult,
 } from './logic/index'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
@@ -55,6 +57,9 @@ interface SimulacaoResultado {
   entradaValor: number
   despesaSubstituida: number
   parcelasExistentes: number
+  // P1 features
+  rendimentoAnual: number
+  scoreSaude: ScoreSaudeResult
 }
 
 function loadFromStorage() {
@@ -79,13 +84,14 @@ export default function App() {
   const [itemNome, setItemNome] = useState<string>(saved?.itemNome ?? '')
   const [itemValor, setItemValor] = useState<number>(saved?.itemValor ?? 0)
   const [parcelas, setParcelas] = useState<number>(saved?.parcelas ?? 1)
-  // P0 state
+  // P0 / P1 state
   const [tipoCompra, setTipoCompra] = useState<TipoCompra>(saved?.tipoCompra ?? 'lazer')
   const [manutencaoMensal, setManutencaoMensal] = useState<number>(saved?.manutencaoMensal ?? 0)
   const [entradaValor, setEntradaValor] = useState<number>(saved?.entradaValor ?? 0)
   const [despesaSubstituida, setDespesaSubstituida] = useState<number>(saved?.despesaSubstituida ?? 0)
   const [taxaJuros, setTaxaJuros] = useState<number>(saved?.taxaJuros ?? 0)
   const [parcelasExistentes, setParcelasExistentes] = useState<number>(saved?.parcelasExistentes ?? 0)
+  const [rendimentoAnual, setRendimentoAnual] = useState<number>(saved?.rendimentoAnual ?? 0)
   // Derived: ferramenta boolean from tipoCompra
   const ferramenta = tipoCompra === 'ferramenta'
   const [simulacao, setSimulacao] = useState<SimulacaoResultado | null>(null)
@@ -113,9 +119,10 @@ export default function App() {
       despesaSubstituida,
       taxaJuros,
       parcelasExistentes,
+      rendimentoAnual,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes])
+  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes, rendimentoAnual])
 
   // Auto-selected strategy: 1% rule → patrimônio, otherwise → fluxo
   const criterioAuto = useMemo(
@@ -148,6 +155,19 @@ export default function App() {
     if (custoFinanciamentoLive) return custoFinanciamentoLive.parcelaValor
     return parcelas > 1 ? itemValor / parcelas : itemValor
   }, [custoFinanciamentoLive, itemValor, parcelas])
+
+  // P1.4 — converte taxa anual (a.a.) para mensal efetiva pelo regime composto
+  // Fórmula: i_mensal = (1 + i_anual)^(1/12) - 1
+  const rendimentoMensalEfetivo = useMemo(
+    () => rendimentoAnual > 0 ? (Math.pow(1 + rendimentoAnual / 100, 1 / 12) - 1) * 100 : 0,
+    [rendimentoAnual],
+  )
+
+  // P1.5 — score de saúde financeira (live, atualiza enquanto o usuário preenche)
+  const scoreSaude = useMemo(
+    () => calcScoreSaude(renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes),
+    [renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes],
+  )
 
   const fluxoLive: FluxoCaixaResult = useMemo(
     () => calcFluxoCaixa(itemValor, sobraLazerMensal, parcelas),
@@ -209,7 +229,7 @@ export default function App() {
     const roiOk = calcRoiAprovacao(patrim.statusAtual, ferramenta)
 
     const metaResult = metaValor > 0
-      ? calcImpactoMetaFinanceira(patrimonio, sobraLazerMensal, itemValor, parcelas, metaValor)
+      ? calcImpactoMetaFinanceira(patrimonio, sobraLazerMensal, itemValor, parcelas, metaValor, rendimentoMensalEfetivo)
       : null
 
     // P0.2 — custo com juros
@@ -255,6 +275,8 @@ export default function App() {
       entradaValor,
       despesaSubstituida,
       parcelasExistentes,
+      rendimentoAnual,
+      scoreSaude,
     })
   }
 
@@ -341,6 +363,8 @@ export default function App() {
               entradaValor={simulacao.entradaValor}
               despesaSubstituida={simulacao.despesaSubstituida}
               parcelasExistentes={simulacao.parcelasExistentes}
+              rendimentoAnual={simulacao.rendimentoAnual}
+              scoreSaude={simulacao.scoreSaude}
               onRefazer={novoCalculo}
             />
           </div>
@@ -432,6 +456,9 @@ export default function App() {
                 onReservaMesesChange={setReservaMeses}
                 metaValor={metaValor}
                 onMetaValorChange={setMetaValor}
+                rendimentoAnual={rendimentoAnual}
+                onRendimentoAnualChange={setRendimentoAnual}
+                scoreSaude={scoreSaude}
               />
             )}
 

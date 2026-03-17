@@ -24,6 +24,7 @@ interface Props {
   parcelas: number
   metaValor: number
   metaResult: MetaFinanceiraResult
+  rendimentoAnual?: number
 }
 
 const fmt = (v: number) =>
@@ -51,7 +52,13 @@ export default function GraficoMeta({
   parcelas,
   metaValor,
   metaResult,
+  rendimentoAnual = 0,
 }: Props) {
+
+  // Converte % a.a. para % a.m. pelo regime composto
+  const taxaMensalEfetiva = rendimentoAnual > 0
+    ? (Math.pow(1 + rendimentoAnual / 100, 1 / 12) - 1) * 100
+    : 0
   const { mesesSemCompra, mesesComCompra, atrasoMeses, metaJaAtingida } = metaResult
 
   // Dynamic horizon: show enough months for both trajectories to reach the goal
@@ -70,8 +77,9 @@ export default function GraficoMeta({
         horizonte,
         itemValor,
         Math.max(1, parcelas),
+        taxaMensalEfetiva,
       ),
-    [patrimonio, sobraLazerMensal, horizonte, itemValor, parcelas],
+    [patrimonio, sobraLazerMensal, horizonte, itemValor, parcelas, taxaMensalEfetiva],
   )
 
   const data = useMemo(
@@ -125,6 +133,7 @@ export default function GraficoMeta({
           <div className="grafico-titulo">Impacto na sua meta</div>
           <div className="grafico-subtitulo">
             Quanto tempo para chegar em {fmtShort(metaValor)} — com e sem {itemNome || 'a compra'}
+            {rendimentoAnual > 0 && ` · rendimento ${rendimentoAnual}% a.a.`}
           </div>
         </div>
         {atrasoMeses !== null && atrasoMeses > 0 && (

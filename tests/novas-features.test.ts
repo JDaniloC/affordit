@@ -3,6 +3,9 @@ import {
   calcCustoComJuros,
   validarPassivoAltoValor,
   simularLogica,
+  calcProjecaoPatrimonio,
+  calcImpactoCompraNoPatrimonio,
+  calcScoreSaude,
 } from '../src/logic/index.ts'
 
 // ===========================================================
@@ -204,5 +207,142 @@ describe('simularLogica — parcelas existentes reduzem sobra de lazer', () => {
     })
     expect(r1.debug.sobraLazerMensal).toBe(r2.debug.sobraLazerMensal)
     expect(r1.veredito.tipo).toBe(r2.veredito.tipo)
+  })
+})
+
+// ===========================================================
+// P1.4 — Rendimento com juros compostos nas projeções
+// ===========================================================
+
+describe('calcProjecaoPatrimonio — crescimento com juros compostos', () => {
+  it('taxa = 0: comportamento linear idêntico ao original', () => {
+    const linear = calcProjecaoPatrimonio(10_000, 500, 3, 0)
+    expect(linear).toEqual([10_500, 11_000, 11_500])
+  })
+
+  it('omitir taxa: comportamento linear (backward-compatible)', () => {
+    const semTaxa = calcProjecaoPatrimonio(10_000, 500, 3)
+    expect(semTaxa).toEqual([10_500, 11_000, 11_500])
+  })
+
+  it('taxa > 0: crescimento maior que linear após vários meses', () => {
+    const linear = calcProjecaoPatrimonio(10_000, 500, 12, 0)
+    const compound = calcProjecaoPatrimonio(10_000, 500, 12, 1)
+    expect(compound[11]).toBeGreaterThan(linear[11])
+  })
+
+  it('taxa 1% a.m. — valor do mês 1 correto', () => {
+    // Mês 1: 10000 * 1.01 + 500 = 10100 + 500 = 10600
+    const r = calcProjecaoPatrimonio(10_000, 500, 1, 1)
+    expect(r[0]).toBeCloseTo(10_600, 1)
+  })
+
+  it('taxa 1% a.m. — valor do mês 12 correto', () => {
+    // FV = 10000 * 1.01^12 + 500 * (1.01^12 - 1) / 0.01 ≈ 17610
+    const r = calcProjecaoPatrimonio(10_000, 500, 12, 1)
+    expect(r[11]).toBeCloseTo(17_610, 0)
+  })
+
+  it('aporte zero com juros: só o patrimônio inicial rende', () => {
+    // FV = 10000 * 1.01^3 = 10303.01
+    const r = calcProjecaoPatrimonio(10_000, 0, 3, 1)
+    expect(r[0]).toBeCloseTo(10_100, 1)
+    expect(r[1]).toBeCloseTo(10_201, 0)
+    expect(r[2]).toBeCloseTo(10_303, 0)
+  })
+})
+
+describe('calcImpactoCompraNoPatrimonio — compound growth', () => {
+  it('taxa = 0: resultado igual ao original', () => {
+    const semTaxa = calcImpactoCompraNoPatrimonio(20_000, 1_000, 6, 5_000, 1, 0)
+    const comTaxa0 = calcImpactoCompraNoPatrimonio(20_000, 1_000, 6, 5_000, 1)
+    expect(semTaxa.semCompra).toEqual(comTaxa0.semCompra)
+    expect(semTaxa.comCompra).toEqual(comTaxa0.comCompra)
+  })
+
+  it('taxa > 0: semCompra maior com juros compostos', () => {
+    const linear = calcImpactoCompraNoPatrimonio(20_000, 1_000, 24, 5_000, 1, 0)
+    const compound = calcImpactoCompraNoPatrimonio(20_000, 1_000, 24, 5_000, 1, 1)
+    expect(compound.semCompra[23]).toBeGreaterThan(linear.semCompra[23])
+    expect(compound.comCompra[23]).toBeGreaterThan(linear.comCompra[23])
+  })
+
+  it('compra à vista: patrimônio inicial reduzido antes de crescer', () => {
+    // À vista: começa com 20000 - 5000 = 15000
+    const r = calcImpactoCompraNoPatrimonio(20_000, 1_000, 1, 5_000, 1, 1)
+    // Mês 1: 15000 * 1.01 + 1000 = 15150 + 1000 = 16150
+    expect(r.comCompra[0]).toBeCloseTo(16_150, 0)
+  })
+})
+
+// ===========================================================
+// P1.5 — Score de saúde financeira
+// ===========================================================
+
+describe('calcScoreSaude — score de saúde financeira', () => {
+  it('situação ideal: 100 pontos → Boa', () => {
+    const r = calcScoreSaude(5_000, 2_000, 30_000, 6, 0, [])
+    // reserva 30000 ≥ 12000 → seguranca → 40pts
+    // custo 40% ≤ 50% → 25pts
+    // lazer (5000-2000)/5000 = 60% ≥ 20% → 20pts
+    // parcelas 0 → 15pts
+    expect(r.pontuacao).toBe(100)
+    expect(r.nivel).toBe('boa')
+    expect(r.fatores.every((f) => f.ok)).toBe(true)
+  })
+
+  it('reserva em perigo: fator marcado como falha', () => {
+    const r = calcScoreSaude(5_000, 2_000, 1_000, 6, 0, [])
+    // 1000 < 12000/2 = 6000 → perigo → 0pts na reserva
+    expect(r.fatores.find((f) => f.label === 'Reserva de emergência')?.ok).toBe(false)
+    expect(r.pontuacao).toBeLessThan(100)
+  })
+
+  it('reserva em atenção: pontuação parcial', () => {
+    const r = calcScoreSaude(5_000, 2_000, 8_000, 6, 0, [])
+    // alvo 12000, 8000 ≥ 6000 (50%) → atenção → 20pts
+    const reservaFator = r.fatores.find((f) => f.label === 'Reserva de emergência')!
+    expect(reservaFator.ok).toBe(false)
+    expect(reservaFator.pontos).toBe(20)
+  })
+
+  it('custo de vida > 70% da renda: fator reprovado', () => {
+    const r = calcScoreSaude(5_000, 4_000, 60_000, 6, 0, [])
+    // 4000/5000 = 80% > 70%
+    const custoFator = r.fatores.find((f) => f.label === 'Custo de vida')!
+    expect(custoFator.ok).toBe(false)
+  })
+
+  it('custo de vida entre 50-70%: pontuação parcial', () => {
+    const r = calcScoreSaude(5_000, 3_000, 60_000, 6, 0, [])
+    // 3000/5000 = 60% → faixa 50-70% → pontuação parcial
+    const custoFator = r.fatores.find((f) => f.label === 'Custo de vida')!
+    expect(custoFator.pontos).toBeGreaterThan(0)
+    expect(custoFator.pontos).toBeLessThan(25)
+  })
+
+  it('parcelas existentes altas penalizam a pontuação', () => {
+    const semParcelas = calcScoreSaude(5_000, 2_000, 30_000, 6, 0, [])
+    const comParcelas = calcScoreSaude(5_000, 2_000, 30_000, 6, 1_200, [])
+    expect(comParcelas.pontuacao).toBeLessThan(semParcelas.pontuacao)
+  })
+
+  it('tudo ruim → Atenção', () => {
+    // Reserva perigo + custo altíssimo + parcelas altas
+    const r = calcScoreSaude(5_000, 4_500, 100, 6, 1_000, [])
+    expect(r.nivel).toBe('atencao')
+  })
+
+  it('situação intermediária → Regular', () => {
+    // reserva 7000 < alvo 18000, custo 60%, lazer 40%, sem parcelas
+    // reserva perigo (7000 < 9000) = 0pts; custo 60% = parcial; lazer 40% = 20; parcelas = 15
+    const r = calcScoreSaude(5_000, 3_000, 7_000, 6, 0, [])
+    expect(r.nivel).toBe('regular')
+  })
+
+  it('renda zero: não divide por zero', () => {
+    const r = calcScoreSaude(0, 0, 0, 6, 0, [])
+    expect(r.pontuacao).toBeGreaterThanOrEqual(0)
+    expect(r.nivel).toBeDefined()
   })
 })
