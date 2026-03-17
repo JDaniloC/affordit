@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Envelope, Criterio } from './types'
+import { Envelope, Criterio, TipoCompra } from './types'
 import {
   simularLogica,
   calcFluxoCaixa,
@@ -8,10 +8,14 @@ import {
   calcLazerPct,
   selectCriterioAuto,
   calcImpactoMetaFinanceira,
+  calcCustoComJuros,
+  validarPassivoAltoValor,
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
   MetaFinanceiraResult,
+  CustoFinanciamentoResult,
+  ValidarPassivoAltoValorResult,
 } from './logic/index'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
@@ -42,6 +46,15 @@ interface SimulacaoResultado {
   parcelas: number
   metaValor: number
   metaResult: MetaFinanceiraResult | null
+  // P0 features
+  tipoCompra: TipoCompra
+  taxaJuros: number
+  custoFinanciamento: CustoFinanciamentoResult | null
+  passivoResult: ValidarPassivoAltoValorResult | null
+  manutencaoMensal: number
+  entradaValor: number
+  despesaSubstituida: number
+  parcelasExistentes: number
 }
 
 function loadFromStorage() {
@@ -65,8 +78,16 @@ export default function App() {
   const [metaValor, setMetaValor] = useState<number>(saved?.metaValor ?? 0)
   const [itemNome, setItemNome] = useState<string>(saved?.itemNome ?? '')
   const [itemValor, setItemValor] = useState<number>(saved?.itemValor ?? 0)
-  const [ferramenta, setFerramenta] = useState<boolean>(saved?.ferramenta ?? false)
   const [parcelas, setParcelas] = useState<number>(saved?.parcelas ?? 1)
+  // P0 state
+  const [tipoCompra, setTipoCompra] = useState<TipoCompra>(saved?.tipoCompra ?? 'lazer')
+  const [manutencaoMensal, setManutencaoMensal] = useState<number>(saved?.manutencaoMensal ?? 0)
+  const [entradaValor, setEntradaValor] = useState<number>(saved?.entradaValor ?? 0)
+  const [despesaSubstituida, setDespesaSubstituida] = useState<number>(saved?.despesaSubstituida ?? 0)
+  const [taxaJuros, setTaxaJuros] = useState<number>(saved?.taxaJuros ?? 0)
+  const [parcelasExistentes, setParcelasExistentes] = useState<number>(saved?.parcelasExistentes ?? 0)
+  // Derived: ferramenta boolean from tipoCompra
+  const ferramenta = tipoCompra === 'ferramenta'
   const [simulacao, setSimulacao] = useState<SimulacaoResultado | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -85,11 +106,16 @@ export default function App() {
       metaValor,
       itemNome,
       itemValor,
-      ferramenta,
       parcelas,
+      tipoCompra,
+      manutencaoMensal,
+      entradaValor,
+      despesaSubstituida,
+      taxaJuros,
+      parcelasExistentes,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, ferramenta, parcelas])
+  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes])
 
   // Auto-selected strategy: 1% rule → patrimônio, otherwise → fluxo
   const criterioAuto = useMemo(
@@ -99,9 +125,29 @@ export default function App() {
 
   // Derived values for charts
   const sobraLazerMensal = useMemo(
-    () => (calcLazerPct(renda, custo, envelopes) / 100) * renda,
-    [renda, custo, envelopes],
+    () => Math.max(0, (calcLazerPct(renda, custo, envelopes) / 100) * renda - parcelasExistentes),
+    [renda, custo, envelopes, parcelasExistentes],
   )
+
+  // Sum of envelope amounts in R$ (used for validarPassivoAltoValor)
+  const baldeInvestimentoR = useMemo(
+    () => envelopes.reduce((sum, e) => sum + (e.pct / 100) * renda, 0),
+    [envelopes, renda],
+  )
+
+  // Real cost of financing with interest (P0.2)
+  const custoFinanciamentoLive = useMemo(
+    () => taxaJuros > 0 && parcelas > 1
+      ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
+      : null,
+    [itemValor, parcelas, taxaJuros],
+  )
+
+  // Parcela efetiva (com ou sem juros)
+  const parcelaEfetiva = useMemo(() => {
+    if (custoFinanciamentoLive) return custoFinanciamentoLive.parcelaValor
+    return parcelas > 1 ? itemValor / parcelas : itemValor
+  }, [custoFinanciamentoLive, itemValor, parcelas])
 
   const fluxoLive: FluxoCaixaResult = useMemo(
     () => calcFluxoCaixa(itemValor, sobraLazerMensal, parcelas),
@@ -130,8 +176,9 @@ export default function App() {
       ferramenta,
       envelopes,
       parcelas,
+      parcelasExistentes,
     })
-  }, [renda, custo, patrimonio, reservaMeses, itemValor, itemNome, ferramenta, envelopes, parcelas])
+  }, [renda, custo, patrimonio, reservaMeses, itemValor, itemNome, ferramenta, envelopes, parcelas, parcelasExistentes])
 
   function simular() {
     if (renda <= 0) {
@@ -154,6 +201,7 @@ export default function App() {
       ferramenta,
       envelopes,
       parcelas,
+      parcelasExistentes,
     })
 
     const fluxo = calcFluxoCaixa(itemValor, resultado.debug.sobraLazerMensal, parcelas)
@@ -162,6 +210,26 @@ export default function App() {
 
     const metaResult = metaValor > 0
       ? calcImpactoMetaFinanceira(patrimonio, sobraLazerMensal, itemValor, parcelas, metaValor)
+      : null
+
+    // P0.2 — custo com juros
+    const custoFinanciamento = taxaJuros > 0 && parcelas > 1
+      ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
+      : null
+
+    // P0.1 — validação passivo de alto valor
+    const passivoResult = tipoCompra === 'passivoAltoValor'
+      ? validarPassivoAltoValor({
+          patrimonio,
+          renda,
+          custo,
+          entrada: entradaValor,
+          parcela: parcelaEfetiva,
+          manutencao: manutencaoMensal,
+          despesaSubstituida,
+          baldeLazer: sobraLazerMensal,
+          baldeInvestimento: baldeInvestimentoR,
+        })
       : null
 
     setSimulacao({
@@ -179,6 +247,14 @@ export default function App() {
       parcelas,
       metaValor,
       metaResult,
+      tipoCompra,
+      taxaJuros,
+      custoFinanciamento,
+      passivoResult,
+      manutencaoMensal,
+      entradaValor,
+      despesaSubstituida,
+      parcelasExistentes,
     })
   }
 
@@ -257,6 +333,14 @@ export default function App() {
               parcelas={simulacao.parcelas}
               metaValor={simulacao.metaValor}
               metaResult={simulacao.metaResult}
+              tipoCompra={simulacao.tipoCompra}
+              taxaJuros={simulacao.taxaJuros}
+              custoFinanciamento={simulacao.custoFinanciamento}
+              passivoResult={simulacao.passivoResult}
+              manutencaoMensal={simulacao.manutencaoMensal}
+              entradaValor={simulacao.entradaValor}
+              despesaSubstituida={simulacao.despesaSubstituida}
+              parcelasExistentes={simulacao.parcelasExistentes}
               onRefazer={novoCalculo}
             />
           </div>
@@ -335,6 +419,8 @@ export default function App() {
                 onCustoChange={setCusto}
                 envelopes={envelopes}
                 onEnvelopesChange={setEnvelopes}
+                parcelasExistentes={parcelasExistentes}
+                onParcelasExistentesChange={setParcelasExistentes}
               />
             )}
 
@@ -355,8 +441,14 @@ export default function App() {
                 onItemNomeChange={setItemNome}
                 itemValor={itemValor}
                 onItemValorChange={setItemValor}
-                ferramenta={ferramenta}
-                onFerramentaChange={setFerramenta}
+                tipoCompra={tipoCompra}
+                onTipoCompraChange={setTipoCompra}
+                manutencaoMensal={manutencaoMensal}
+                onManutencaoMensalChange={setManutencaoMensal}
+                entradaValor={entradaValor}
+                onEntradaValorChange={setEntradaValor}
+                despesaSubstituida={despesaSubstituida}
+                onDespesaSubstituida={setDespesaSubstituida}
               />
             )}
 
@@ -367,6 +459,9 @@ export default function App() {
                 itemValor={itemValor}
                 parcelas={parcelas}
                 onParcelasChange={setParcelas}
+                taxaJuros={taxaJuros}
+                onTaxaJurosChange={setTaxaJuros}
+                custoFinanciamento={custoFinanciamentoLive}
               />
             )}
 

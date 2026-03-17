@@ -1,5 +1,8 @@
 import React from 'react'
 import NumericInput from './NumericInput'
+import { CustoFinanciamentoResult } from '../logic/index'
+
+const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 interface Props {
   criterioAuto: 'fluxo' | 'patrimonio'
@@ -7,6 +10,9 @@ interface Props {
   itemValor: number
   parcelas: number
   onParcelasChange: (v: number) => void
+  taxaJuros: number
+  onTaxaJurosChange: (v: number) => void
+  custoFinanciamento: CustoFinanciamentoResult | null
 }
 
 export default function EstrategiaSection({
@@ -15,6 +21,9 @@ export default function EstrategiaSection({
   itemValor,
   parcelas,
   onParcelasChange,
+  taxaJuros,
+  onTaxaJurosChange,
+  custoFinanciamento,
 }: Props) {
   const pctDoPatrimonio =
     patrimonio > 0 ? ((itemValor / patrimonio) * 100).toFixed(1) : null
@@ -88,6 +97,45 @@ export default function EstrategiaSection({
             />
             <span className="unit">x</span>
           </div>
+        </div>
+      )}
+
+      {criterioAuto === 'fluxo' && parcelas > 1 && (
+        <div className="field" style={{ marginTop: '12px' }}>
+          <label htmlFor="taxa-juros">
+            Taxa de juros mensal <span className="hint-inline">(opcional — 0 = sem juros)</span>
+          </label>
+          <div className="input-group">
+            <NumericInput
+              id="taxa-juros"
+              value={taxaJuros}
+              onChange={onTaxaJurosChange}
+              min={0}
+              step={0.1}
+              placeholder="0"
+            />
+            <span className="unit">% a.m.</span>
+          </div>
+          <p className="field-hint">
+            Taxa do financiamento ou cartão. Com juros, o item custa mais do que o preço de etiqueta.
+          </p>
+
+          {custoFinanciamento && custoFinanciamento.totalJuros > 0 && (
+            <div className="juros-preview">
+              <div className="juros-preview-linha">
+                <span>Parcela com juros:</span>
+                <strong>{fmt(custoFinanciamento.parcelaValor)}/mês</strong>
+              </div>
+              <div className="juros-preview-linha">
+                <span>Total pago:</span>
+                <strong>{fmt(custoFinanciamento.totalPago)}</strong>
+              </div>
+              <div className="juros-preview-linha juros-preview-destaque">
+                <span>Juros totais:</span>
+                <strong>+{fmt(custoFinanciamento.totalJuros)}</strong>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

@@ -22,6 +22,7 @@ export interface SimularParams {
   ferramenta: boolean
   envelopes: Envelope[]
   parcelas?: number
+  parcelasExistentes?: number
 }
 
 export interface Veredito {
@@ -36,10 +37,11 @@ export interface SimularDebug {
   sobraLazerMensal: number
   statusReserva: StatusReserva
   // New fields for the richer decision tree
-  disponivel: number       // patrimônio - reservaAlvo (can be negative)
-  dentro1pct: boolean      // itemValor ≤ 1% do patrimônio
-  parcelaValor: number     // itemValor / parcelas
-  parcelaCabe: boolean     // parcelaValor ≤ sobraLazerMensal
+  disponivel: number           // patrimônio - reservaAlvo (can be negative)
+  dentro1pct: boolean          // itemValor ≤ 1% do patrimônio
+  parcelaValor: number         // itemValor / parcelas
+  parcelaCabe: boolean         // parcelaValor ≤ sobraLazerMensal
+  parcelasExistentes: number   // parcelas mensais já comprometidas
 }
 
 export interface SimularResult {
@@ -140,9 +142,10 @@ function calcStatusReserva(patrimonio: number, reservaAlvo: number): StatusReser
  */
 function simularLogica(p: SimularParams): SimularResult {
   const parcelas = p.parcelas ?? 1
+  const parcelasExistentes = p.parcelasExistentes ?? 0
   const reservaAlvo = p.custo * p.reservaMeses
   const lazerPct = calcLazerPct(p.renda, p.custo, p.envelopes)
-  const sobraLazerMensal = (lazerPct / 100) * p.renda
+  const sobraLazerMensal = Math.max(0, (lazerPct / 100) * p.renda - parcelasExistentes)
   const statusReserva = calcStatusReserva(p.patrimonio, reservaAlvo)
 
   const dentro1pct = p.patrimonio > 0 && p.itemValor <= p.patrimonio * 0.01
@@ -153,7 +156,7 @@ function simularLogica(p: SimularParams): SimularResult {
 
   const debug: SimularDebug = {
     reservaAlvo, lazerPct, sobraLazerMensal, statusReserva,
-    dentro1pct, disponivel, parcelaValor, parcelaCabe,
+    dentro1pct, disponivel, parcelaValor, parcelaCabe, parcelasExistentes,
   }
 
   // ── 1. REGRA DO 1% ── always approve, regardless of reserve or cash
@@ -302,6 +305,77 @@ function calcRoiAprovacao(statusPatrimonio: StatusPatrimonio, ferramenta: boolea
 // ===========================================================
 // IMPACTO NO OBJETIVO DE ACUMULAÇÃO
 // ===========================================================
+
+// ===========================================================
+// CUSTO REAL DO FINANCIAMENTO COM JUROS (P0.2)
+// ===========================================================
+
+export interface CustoFinanciamentoResult {
+  totalPago: number
+  totalJuros: number
+  parcelaValor: number
+}
+
+/**
+ * Calcula o custo real de um financiamento usando o sistema Price (parcelas fixas).
+ * @param valor - valor total do item
+ * @param parcelas - número de parcelas
+ * @param taxaMensal - taxa de juros mensal em percentual (ex: 2 = 2% a.m.)
+ */
+function calcCustoComJuros(
+  valor: number,
+  parcelas: number,
+  taxaMensal: number,
+): CustoFinanciamentoResult {
+  const n = Math.max(1, parcelas)
+  if (taxaMensal <= 0 || n <= 1) {
+    return { totalPago: valor, totalJuros: 0, parcelaValor: valor / n }
+  }
+  const i = taxaMensal / 100
+  const fator = Math.pow(1 + i, n)
+  const parcelaValor = valor * (i * fator) / (fator - 1)
+  const totalPago = parcelaValor * n
+  const totalJuros = totalPago - valor
+  return { totalPago, totalJuros, parcelaValor }
+}
+
+// ===========================================================
+// PASSIVO DE ALTO VALOR — validação unificada (P0.1)
+// Generaliza veículo e imóvel: qualquer bem com alto valor,
+// custos mensais recorrentes e depreciação.
+// ===========================================================
+
+export interface ValidarPassivoAltoValorParams {
+  patrimonio: number
+  renda: number
+  custo: number
+  entrada: number
+  parcela: number            // parcela mensal do financiamento
+  manutencao: number         // custo mensal de manutenção
+  despesaSubstituida: number // despesa substituída pelo bem (ex: aluguel atual)
+  baldeLazer: number         // sobra mensal de lazer
+  baldeInvestimento: number  // soma dos envelopes de investimento em R$
+}
+
+export type ValidarPassivoAltoValorResult = ValidarBigTicketResult
+
+/**
+ * Valida a viabilidade de um passivo de alto valor (carro, imóvel, equipamento caro).
+ * Aplica as 3 regras: entrada, DTI e margem de manobra.
+ */
+function validarPassivoAltoValor(p: ValidarPassivoAltoValorParams): ValidarPassivoAltoValorResult {
+  return validarBigTicket({
+    patrimonio: p.patrimonio,
+    entrada: p.entrada,
+    custo: p.custo,
+    novaParcela: p.parcela,
+    manutencao: p.manutencao,
+    balceLazer: p.baldeLazer,
+    baldeInvestimento: p.baldeInvestimento,
+    aluguelSubstituido: p.despesaSubstituida,
+    renda: p.renda,
+  })
+}
 
 export interface MetaFinanceiraResult {
   mesesSemCompra: number | null
@@ -749,6 +823,8 @@ function calcAtrasoCompra(
 }
 
 export {
+  calcCustoComJuros,
+  validarPassivoAltoValor,
   calcImpactoMetaFinanceira,
   simularLogica,
   calcLazerPct,

@@ -1,10 +1,12 @@
 import React from 'react'
-import { Criterio } from '../types'
+import { Criterio, TipoCompra } from '../types'
 import {
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
   MetaFinanceiraResult,
+  CustoFinanciamentoResult,
+  ValidarPassivoAltoValorResult,
   CRITERIOS,
 } from '../logic/index'
 import GraficoPatrimonio from './GraficoPatrimonio'
@@ -25,6 +27,15 @@ interface Props {
   parcelas: number
   metaValor: number
   metaResult: MetaFinanceiraResult | null
+  // P0 features
+  tipoCompra: TipoCompra
+  taxaJuros: number
+  custoFinanciamento: CustoFinanciamentoResult | null
+  passivoResult: ValidarPassivoAltoValorResult | null
+  manutencaoMensal: number
+  entradaValor: number
+  despesaSubstituida: number
+  parcelasExistentes: number
   onRefazer: () => void
 }
 
@@ -308,6 +319,14 @@ export default function ResultadoSection({
   parcelas,
   metaValor,
   metaResult,
+  tipoCompra,
+  taxaJuros,
+  custoFinanciamento,
+  passivoResult,
+  manutencaoMensal,
+  entradaValor,
+  despesaSubstituida,
+  parcelasExistentes,
   onRefazer,
 }: Props) {
   const { veredito, debug } = resultado
@@ -410,6 +429,78 @@ export default function ResultadoSection({
         <div className="proximo-passo-box">
           <div className="proximo-passo-label">👉 O que fazer agora</div>
           <div className="proximo-passo-texto">{proximoPasso}</div>
+        </div>
+      )}
+
+      {/* ── Financing cost card (P0.2) ── */}
+      {custoFinanciamento && custoFinanciamento.totalJuros > 0 && (
+        <div className="juros-card">
+          <div className="juros-card-titulo">💸 Custo real do financiamento ({taxaJuros}% a.m.)</div>
+          <div className="juros-card-linhas">
+            <div className="juros-card-linha">
+              <span>Parcela mensal com juros</span>
+              <strong>{fmt(custoFinanciamento.parcelaValor)}/mês</strong>
+            </div>
+            <div className="juros-card-linha">
+              <span>Total pago em {parcelas}x</span>
+              <strong>{fmt(custoFinanciamento.totalPago)}</strong>
+            </div>
+            <div className="juros-card-linha juros-card-destaque">
+              <span>Juros totais</span>
+              <strong>+{fmt(custoFinanciamento.totalJuros)}</strong>
+            </div>
+          </div>
+          <p className="juros-card-nota">
+            O item de {fmt(itemValor)} custará {fmt(custoFinanciamento.totalPago)} no total — {((custoFinanciamento.totalJuros / itemValor) * 100).toFixed(0)}% a mais do que o preço à vista.
+          </p>
+        </div>
+      )}
+
+      {/* ── Passivo de alto valor card (P0.1) ── */}
+      {tipoCompra === 'passivoAltoValor' && passivoResult && (
+        <div className="passivo-card">
+          <div className="passivo-card-titulo">🏠 Análise: Passivo de Alto Valor</div>
+          <div className="regras-lista">
+            <RegraItem
+              ok={passivoResult.passouEntrada}
+              label="Entrada preserva a reserva"
+              desc={
+                passivoResult.passouEntrada
+                  ? `Após a entrada de ${fmt(entradaValor)}, você mantém pelo menos 6 meses de custo de vida na reserva.`
+                  : `A entrada de ${fmt(entradaValor)} reduziria sua reserva abaixo de 6 meses de custo (${fmt(custo * 6)}). Risco alto.`
+              }
+            />
+            <RegraItem
+              ok={passivoResult.passouDTI}
+              label="Custo mensal comportável"
+              desc={
+                passivoResult.passouDTI
+                  ? `Parcela + manutenção (${fmt((itemValor / parcelas) + manutencaoMensal)}) cabe no orçamento após descontar despesas substituídas.`
+                  : `Parcela + manutenção ${despesaSubstituida > 0 ? `menos despesa substituída de ${fmt(despesaSubstituida)}` : ''} excede o que sobra no orçamento. Compromete o lazer e os investimentos.`
+              }
+            />
+            <RegraItem
+              ok={passivoResult.passouMargem}
+              label="Margem de manobra ≥ 5% da renda"
+              desc={
+                passivoResult.passouMargem
+                  ? `Após o novo custo fixo, sua sobra mensal é suficiente para imprevistos.`
+                  : `Com o novo compromisso, sobra menos de 5% da renda (${fmt(renda * 0.05)}/mês). Qualquer imprevisto compromete o orçamento.`
+              }
+            />
+          </div>
+          {despesaSubstituida > 0 && (
+            <p className="passivo-card-nota">
+              Custo efetivo considerado: parcela + manutenção − despesa substituída (aluguel/Uber atual de {fmt(despesaSubstituida)}/mês).
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Parcelas existentes notice ── */}
+      {parcelasExistentes > 0 && (
+        <div className="parcelas-existentes-notice">
+          <strong>ℹ️ Parcelas em andamento:</strong> {fmt(parcelasExistentes)}/mês descontados do balde de lazer nesta simulação.
         </div>
       )}
 

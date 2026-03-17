@@ -10,6 +10,8 @@ interface Props {
   onCustoChange: (v: number) => void
   envelopes: Envelope[]
   onEnvelopesChange: React.Dispatch<React.SetStateAction<Envelope[]>>
+  parcelasExistentes: number
+  onParcelasExistentesChange: (v: number) => void
 }
 
 export default function ConfigSection({
@@ -19,6 +21,8 @@ export default function ConfigSection({
   onCustoChange,
   envelopes,
   onEnvelopesChange,
+  parcelasExistentes,
+  onParcelasExistentesChange,
 }: Props) {
   const total = envelopes.reduce((acc, e) => acc + (e.pct || 0), 0)
   const lazer = calcLazerPct(renda, custo, envelopes)
@@ -70,6 +74,23 @@ export default function ConfigSection({
             placeholder="0,00"
           />
         </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="parcelas-existentes">Parcelas mensais em andamento</label>
+        <div className="input-group">
+          <span className="unit prefix">R$</span>
+          <NumericInput
+            id="parcelas-existentes"
+            value={parcelasExistentes}
+            onChange={onParcelasExistentesChange}
+            placeholder="0,00"
+          />
+        </div>
+        <p className="field-hint">
+          Soma das parcelas que você já paga todo mês (celular, empréstimo, assinaturas parceladas etc).
+          Esse valor é descontado do seu balde de lazer na simulação.
+        </p>
       </div>
 
       <div className="field">
