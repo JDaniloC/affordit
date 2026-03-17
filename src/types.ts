@@ -12,6 +12,7 @@ export interface AppState {
   renda: number
   custo: number
   patrimonio: number
+  metaValor: number
   itemNome: string
   itemValor: number
   ferramenta: boolean

@@ -3,6 +3,7 @@ import {
   calcFluxoCaixa,
   calcStatusPatrimonio,
   calcRoiAprovacao,
+  selectCriterioAuto,
 } from '../src/logic/index.ts'
 
 // ===========================================================
@@ -168,38 +169,74 @@ describe('ROI Profissional — itens de consumo', () => {
   })
 })
 
-describe('Integração: combinação de estratégias no mesmo cenário', () => {
-  it('Tech Lead (GREEN): fluxo cabe no mês + patrimônio seguro + ROI não necessário', () => {
-    // renda 15k, custo 2k, patrimônio 150k, item 3.1k, lazer ≈ 6.25k
+// ===========================================================
+// SELEÇÃO AUTOMÁTICA DE CRITÉRIO
+// 1% rule → patrimônio  |  caso contrário → fluxo de caixa
+// ===========================================================
+
+describe('selectCriterioAuto — seleção automática de critério por patrimônio', () => {
+  it('item ≤ 1% do patrimônio → critério patrimônio', () => {
+    expect(selectCriterioAuto(150000, 1500)).toBe('patrimonio')
+  })
+  it('item exatamente 1% → limite inclusivo → patrimônio', () => {
+    expect(selectCriterioAuto(100000, 1000)).toBe('patrimonio')
+  })
+  it('item acima de 1% → critério fluxo', () => {
+    expect(selectCriterioAuto(100000, 1001)).toBe('fluxo')
+  })
+  it('patrimônio zero → sempre fluxo (regra do 1% nunca ativa)', () => {
+    expect(selectCriterioAuto(0, 100)).toBe('fluxo')
+  })
+  it('patrimônio negativo → sempre fluxo', () => {
+    expect(selectCriterioAuto(-5000, 100)).toBe('fluxo')
+  })
+  it('item zero com patrimônio positivo → risco zero → patrimônio', () => {
+    expect(selectCriterioAuto(100000, 0)).toBe('patrimonio')
+  })
+})
+
+describe('Integração: critério automático + análise no cenário real', () => {
+  it('Tech Lead (patrimônio 150k, item 3.1k): critério fluxo — item > 1% do patrimônio', () => {
+    // 3100 > 150000 * 0.01 = 1500 → fluxo
+    const criterio = selectCriterioAuto(150000, 3100)
     const fluxo = calcFluxoCaixa(3100, 6250)
     const patrim = calcStatusPatrimonio(150000, 2000, 3100)
-    const roi = calcRoiAprovacao(patrim.statusAtual, false)
 
+    expect(criterio).toBe('fluxo')
     expect(fluxo.delay).toBe(1)           // cabe no mês
     expect(patrim.statusAtual).toBe('green')
     expect(patrim.alertaDegracao).toBe(false)
-    expect(roi).toBe(false)               // ROI não se aplica (não é ferramenta)
   })
 
-  it('Iniciante (RED): fluxo bloqueado, ROI necessário para instrumento', () => {
-    // renda 900, custo 800, patrimônio 1k, instrumento 8k, lazer ≈ 100/mês
+  it('Compra barata (patrimônio 150k, item 1k): critério patrimônio — dentro do 1%', () => {
+    // 1000 ≤ 150000 * 0.01 = 1500 → patrimônio, risco zero
+    const criterio = selectCriterioAuto(150000, 1000)
+    const patrim = calcStatusPatrimonio(150000, 2000, 1000)
+
+    expect(criterio).toBe('patrimonio')
+    expect(patrim.dentro1pct).toBe(true)
+    expect(patrim.statusAtual).toBe('green')
+  })
+
+  it('Iniciante (patrimônio 1k, item 8k): critério fluxo — item >> 1%, reserva RED', () => {
+    // 8000 > 1000 * 0.01 = 10 → fluxo
+    const criterio = selectCriterioAuto(1000, 8000)
     const fluxo = calcFluxoCaixa(8000, 100)
     const patrim = calcStatusPatrimonio(1000, 800, 8000)
-    const roi = calcRoiAprovacao(patrim.statusAtual, true)
 
-    expect(fluxo.delay).toBe(80)          // 80 meses de espera pelo fluxo
+    expect(criterio).toBe('fluxo')
+    expect(fluxo.delay).toBe(80)          // 80 meses de espera
     expect(patrim.statusAtual).toBe('red')
-    expect(roi).toBe(false)               // RED bloqueia mesmo com ferramenta
   })
 
-  it('Profissional (YELLOW): ROI libera compra de ferramenta que fluxo negaria', () => {
-    // renda 5k, custo 2k, patrimônio 15k (YELLOW), notebook 3k, lazer 1k/mês
+  it('Profissional (patrimônio 15k, item 3k): critério fluxo — item > 1% do patrimônio', () => {
+    // 3000 > 15000 * 0.01 = 150 → fluxo
+    const criterio = selectCriterioAuto(15000, 3000)
     const fluxo = calcFluxoCaixa(3000, 1000)
     const patrim = calcStatusPatrimonio(15000, 2000, 3000)
-    const roi = calcRoiAprovacao(patrim.statusAtual, true)
 
-    expect(fluxo.delay).toBe(3)           // fluxo sozinho pediria 3 meses
+    expect(criterio).toBe('fluxo')
+    expect(fluxo.delay).toBe(3)
     expect(patrim.statusAtual).toBe('yellow')
-    expect(roi).toBe(true)                // ROI aprova por ser ferramenta em YELLOW
   })
 })

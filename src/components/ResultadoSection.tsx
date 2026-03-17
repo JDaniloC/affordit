@@ -4,9 +4,11 @@ import {
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
+  MetaFinanceiraResult,
   CRITERIOS,
 } from '../logic/index'
 import GraficoPatrimonio from './GraficoPatrimonio'
+import GraficoMeta from './GraficoMeta'
 
 interface Props {
   resultado: SimularResult
@@ -21,79 +23,61 @@ interface Props {
   itemValor: number
   itemNome: string
   parcelas: number
+  metaValor: number
+  metaResult: MetaFinanceiraResult | null
   onRefazer: () => void
-}
-
-const ICONES: Record<string, string> = {
-  'Compra Livre': '✅',
-  'Aprovado via Alavancagem': '🚀',
-  Negado: '🚫',
-  'Juntar Primeiro': '⏳',
-  'Juntar com Calma': '💰',
 }
 
 const fmt = (valor: number) =>
   valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-// ─── Prazo Card ────────────────────────────────────────────────────────────
-// Always shown. Tells the user exactly how long to save before they can buy.
+function fmtMeses(meses: number): string {
+  if (meses === 0) return 'agora mesmo'
+  if (meses < 12) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`
+  const anos = Math.floor(meses / 12)
+  const resto = meses % 12
+  const anosStr = `${anos} ${anos === 1 ? 'ano' : 'anos'}`
+  return resto === 0 ? anosStr : `${anosStr} e ${resto} ${resto === 1 ? 'mês' : 'meses'}`
+}
+
+// ─── Savings Timeline Card ──────────────────────────────────────────────────
 
 function PrazoCard({
   itemValor,
   itemNome,
   sobraLazerMensal,
   patrimonio,
-  vereditoTitulo,
 }: {
   itemValor: number
   itemNome: string
   sobraLazerMensal: number
   patrimonio: number
-  vereditoTitulo: string
 }) {
   const jaTemCash = patrimonio >= itemValor
-  const meses =
-    sobraLazerMensal > 0 ? Math.ceil(itemValor / sobraLazerMensal) : null
+  const meses = sobraLazerMensal > 0 ? Math.ceil(itemValor / sobraLazerMensal) : null
   const progresso = itemValor > 0 ? Math.min(100, (patrimonio / itemValor) * 100) : 100
+  const variant = jaTemCash ? 'ok' : meses === null ? 'block' : 'neutral'
 
-  // How long in human language
-  const prazoLabel = (() => {
-    if (jaTemCash) return 'Já tem o valor em caixa'
-    if (meses === null) return 'Sem sobra de lazer'
-    if (meses === 1) return '1 mês'
-    if (meses < 12) return `${meses} meses`
-    const anos = Math.floor(meses / 12)
-    const resto = meses % 12
-    return resto === 0
-      ? `${anos} ${anos === 1 ? 'ano' : 'anos'}`
-      : `${anos} ${anos === 1 ? 'ano' : 'anos'} e ${resto} ${resto === 1 ? 'mês' : 'meses'}`
-  })()
-
-  const variant = jaTemCash ? 'ok' : meses === null ? 'block' : meses === 1 ? 'ok' : 'neutral'
+  const prazoNumero = jaTemCash ? 'Você já tem!' : meses === null ? 'Sem sobra' : fmtMeses(meses)
+  const ctxMsg = jaTemCash
+    ? `Seu dinheiro guardado (${fmt(patrimonio)}) já cobre ${itemNome || 'o item'}.`
+    : meses === null
+    ? 'Não sobra dinheiro no mês para juntar. Revise seus gastos.'
+    : `Guardando ${fmt(sobraLazerMensal)} por mês, você chega lá em ${fmtMeses(meses)}.`
 
   return (
     <div className={`prazo-card prazo-${variant}`}>
       <div className="prazo-top">
         <div className="prazo-left">
-          <div className="prazo-label">Tempo para juntar o valor</div>
-          <div className="prazo-numero">{prazoLabel}</div>
-          {!jaTemCash && meses !== null && (
-            <div className="prazo-equacao">
-              {fmt(sobraLazerMensal)}/mês × {meses} = {fmt(itemValor)}
-            </div>
-          )}
-          {jaTemCash && (
-            <div className="prazo-equacao">
-              Seu patrimônio ({fmt(patrimonio)}) cobre o valor total
-            </div>
-          )}
+          <div className="prazo-label">Tempo para juntar</div>
+          <div className="prazo-numero">{prazoNumero}</div>
+          <div className="prazo-equacao">{ctxMsg}</div>
         </div>
         <div className="prazo-meta">
           <div className="prazo-meta-valor">{fmt(itemValor)}</div>
           <div className="prazo-meta-label">{itemNome || 'item'}</div>
         </div>
       </div>
-
       <div className="prazo-progress-wrap">
         <div className="prazo-progress-bar">
           <div className="prazo-progress-fill" style={{ width: `${progresso}%` }} />
@@ -104,126 +88,207 @@ function PrazoCard({
           {jaTemCash && <span className="prazo-ok-label">Valor disponível ✓</span>}
         </div>
       </div>
-
-      <p className="prazo-regra">
-        Regra: mesmo parcelado, você precisa ter o valor total em caixa antes de se comprometer.
-      </p>
     </div>
   )
 }
 
-// ─── Bloco por Critério ────────────────────────────────────────────────────
+// ─── Rules checklist ────────────────────────────────────────────────────────
 
-function BlocoCriterio({
-  criterio,
-  fluxo,
-  patrim,
-  roiOk,
-  ferramenta,
+function RegraItem({
+  ok,
+  label,
+  desc,
+}: {
+  ok: boolean
+  label: string
+  desc: string
+}) {
+  return (
+    <div className={`regra-item ${ok ? 'regra-ok' : 'regra-falhou'}`}>
+      <div className="regra-icone">{ok ? '✅' : '❌'}</div>
+      <div className="regra-texto">
+        <div className="regra-label">{label}</div>
+        <div className="regra-desc">{desc}</div>
+      </div>
+    </div>
+  )
+}
+
+function RegrasCard({
+  patrimonio,
+  reservaAlvo,
+  dentro1pct,
+  disponivel,
+  itemValor,
+  parcelas,
+  parcelaCabe,
+  parcelaValor,
   sobraLazerMensal,
 }: {
-  criterio: Criterio
-  fluxo: FluxoCaixaResult
-  patrim: StatusPatrimonioResult
-  roiOk: boolean
-  ferramenta: boolean
+  patrimonio: number
+  reservaAlvo: number
+  dentro1pct: boolean
+  disponivel: number
+  itemValor: number
+  parcelas: number
+  parcelaCabe: boolean
+  parcelaValor: number
   sobraLazerMensal: number
 }) {
-  const c = CRITERIOS[criterio]
+  const temReserva = patrimonio >= reservaAlvo
+  const temDinheiro = disponivel >= itemValor
 
-  if (criterio === 'fluxo') {
-    const headerBadge =
-      fluxo.delay === 1 ? (
-        <span className="status-badge ok">Sustentável</span>
-      ) : fluxo.delay === null ? (
-        <span className="status-badge block">Sem sobra</span>
-      ) : (
-        <span className="status-badge warn">Requer planejamento</span>
-      )
+  return (
+    <div className="regras-card">
+      <div className="regras-titulo">Como sua situação foi avaliada</div>
+      <div className="regras-lista">
+        <RegraItem
+          ok={temReserva}
+          label="Reserva de emergência"
+          desc={
+            temReserva
+              ? `Você tem ${fmt(patrimonio)} guardados — sua reserva está coberta.`
+              : `Você ainda precisa guardar ${fmt(reservaAlvo - patrimonio)} para montar sua reserva (${fmt(reservaAlvo)}).`
+          }
+        />
+        {dentro1pct ? (
+          <RegraItem
+            ok={true}
+            label="Regra do 1%"
+            desc={`${itemValor <= 0 ? 'O item' : fmt(itemValor)} custa menos de 1% do seu patrimônio — compra de baixo impacto.`}
+          />
+        ) : (
+          <RegraItem
+            ok={temDinheiro}
+            label="Dinheiro disponível além da reserva"
+            desc={
+              temDinheiro
+                ? `Você tem ${fmt(disponivel)} disponíveis além da reserva — cobre o valor do item.`
+                : disponivel > 0
+                ? `Você tem ${fmt(disponivel)} disponíveis além da reserva, mas o item custa ${fmt(itemValor)}. Faltam ${fmt(itemValor - disponivel)}.`
+                : `Todo o seu patrimônio ainda está abaixo da reserva ideal (${fmt(reservaAlvo)}).`
+            }
+          />
+        )}
+        {parcelas > 1 && !dentro1pct && (
+          <RegraItem
+            ok={parcelaCabe}
+            label="Parcela cabe no orçamento mensal"
+            desc={
+              parcelaCabe
+                ? `A parcela de ${fmt(parcelaValor)} cabe dentro do que sobra por mês (${fmt(sobraLazerMensal)}).`
+                : `A parcela de ${fmt(parcelaValor)} é maior do que sobra no mês (${fmt(sobraLazerMensal)}). Risco de apertar o orçamento.`
+            }
+          />
+        )}
+      </div>
+    </div>
+  )
+}
 
-    const parcBadge = fluxo.parcelaCabe ? (
-      <span className="status-badge ok">Parcela cabe</span>
-    ) : (
-      <span className="status-badge warn">Parcela excede o lazer</span>
-    )
+// ─── Path to purchase (negado only) ─────────────────────────────────────────
 
+function CaminhoCard({
+  patrimonio,
+  reservaAlvo,
+  sobraLazerMensal,
+  itemValor,
+  itemNome,
+}: {
+  patrimonio: number
+  reservaAlvo: number
+  sobraLazerMensal: number
+  itemValor: number
+  itemNome: string
+}) {
+  const podeGuardar = sobraLazerMensal > 0
+
+  // Phase 1: fill the reserve (if needed)
+  const faltaReserva = Math.max(0, reservaAlvo - patrimonio)
+  const fase1Meses = podeGuardar && faltaReserva > 0 ? Math.ceil(faltaReserva / sobraLazerMensal) : 0
+
+  // Phase 2: save for the item beyond the reserve
+  const disponivel = Math.max(0, patrimonio - reservaAlvo)
+  const faltaItem = Math.max(0, itemValor - disponivel)
+  const fase2Meses = podeGuardar && faltaItem > 0 ? Math.ceil(faltaItem / sobraLazerMensal) : 0
+
+  const totalMeses = fase1Meses + fase2Meses
+  const temDuasFases = fase1Meses > 0
+
+  if (!podeGuardar) {
     return (
-      <div className="criterio-resultado">
-        <div className="criterio-resultado-header">
-          💸 {c.titulo} {headerBadge}
-        </div>
-        <div className="criterio-resultado-body">
-          <p>
-            Balde de lazer: <strong>{fmt(sobraLazerMensal)}/mês</strong> — Parcela:{' '}
-            <strong>{fmt(fluxo.parcelaValor)}</strong> {parcBadge}
-          </p>
-        </div>
+      <div className="caminho-card">
+        <div className="caminho-titulo">🗓 Quando posso comprar?</div>
+        <p className="caminho-msg">
+          No momento, não sobra dinheiro para guardar. Para comprar {itemNome || 'o item'}, você
+          precisa primeiro reduzir seus gastos mensais e criar uma margem de poupança.
+        </p>
       </div>
     )
   }
 
-  if (criterio === 'patrimonio') {
-    const statusLabel: Record<string, string> = {
-      green: '🟢 GREEN',
-      yellow: '🟡 YELLOW',
-      red: '🔴 RED',
-    }
-    const alertaHtml = patrim.alertaDegracao ? (
-      <div className="alerta-degradacao">
-        ⚠️ Esta compra derruba sua reserva de {statusLabel[patrim.statusAtual]} para{' '}
-        {statusLabel[patrim.statusAposCompra]}.
+  return (
+    <div className="caminho-card">
+      <div className="caminho-titulo">🗓 Quando você pode comprar?</div>
+
+      {temDuasFases && (
+        <div className="caminho-fase">
+          <div className="caminho-fase-num">1</div>
+          <div className="caminho-fase-corpo">
+            <div className="caminho-fase-label">Montar a reserva de emergência</div>
+            <div className="caminho-fase-desc">
+              Faltam {fmt(faltaReserva)} para atingir {fmt(reservaAlvo)}
+            </div>
+            <div className="caminho-fase-prazo">⏱ {fmtMeses(fase1Meses)} guardando {fmt(sobraLazerMensal)}/mês</div>
+          </div>
+        </div>
+      )}
+
+      {fase2Meses > 0 && (
+        <div className="caminho-fase">
+          <div className="caminho-fase-num">{temDuasFases ? '2' : '1'}</div>
+          <div className="caminho-fase-corpo">
+            <div className="caminho-fase-label">Juntar para {itemNome || 'o item'}</div>
+            <div className="caminho-fase-desc">
+              {disponivel > 0 && !temDuasFases
+                ? `Você já tem ${fmt(disponivel)} disponíveis. Faltam ${fmt(faltaItem)}.`
+                : `Guardar ${fmt(itemValor)} além da reserva`}
+            </div>
+            <div className="caminho-fase-prazo">⏱ {fmtMeses(fase2Meses)} guardando {fmt(sobraLazerMensal)}/mês</div>
+          </div>
+        </div>
+      )}
+
+      <div className="caminho-total">
+        <span className="caminho-total-label">Você pode comprar em</span>
+        <span className="caminho-total-prazo">{fmtMeses(totalMeses)}</span>
+        <span className="caminho-total-label">guardando {fmt(sobraLazerMensal)}/mês</span>
       </div>
-    ) : null
-    const pctBadge = patrim.dentro1pct ? (
-      <span className="status-badge ok">Regra do 1% — risco zero</span>
-    ) : null
+    </div>
+  )
+}
 
-    return (
-      <div className="criterio-resultado">
-        <div className="criterio-resultado-header">
-          🏦 {c.titulo}{' '}
-          <span className={`status-badge ${patrim.statusAtual}`}>
-            {statusLabel[patrim.statusAtual]}
-          </span>
-        </div>
-        <div className="criterio-resultado-body">
-          <p>
-            Status atual: <strong>{statusLabel[patrim.statusAtual]}</strong> → após compra:{' '}
-            <strong>{statusLabel[patrim.statusAposCompra]}</strong> {pctBadge}
-          </p>
-          {alertaHtml}
-        </div>
-      </div>
-    )
-  }
+// ─── Verdict config ────────────────────────────────────────────────────────
 
-  if (criterio === 'roi') {
-    const badge = roiOk ? (
-      <span className="status-badge ok">Alavancagem aprovada</span>
-    ) : ferramenta ? (
-      <span className="status-badge block">Reserva em RED — risco alto</span>
-    ) : (
-      <span className="status-badge warn">Marque como ferramenta para ativar</span>
-    )
-    const msg = roiOk
-      ? `Ferramenta aprovada em estado ${patrim.statusAtual.toUpperCase()}. O retorno esperado justifica a aquisição.`
-      : ferramenta
-      ? 'Sua reserva está abaixo de 6 meses (RED). O critério de ROI não cobre esse nível de risco.'
-      : 'Este critério só se aplica a itens marcados como ferramenta de trabalho.'
+const VERDICT_MAP: Record<string, { titulo: string; sub: string }> = {
+  aprovado: {
+    titulo: 'Pode comprar! 💪',
+    sub: 'Você seguiu as regras: tem reserva de emergência e dinheiro disponível.',
+  },
+  juntar: {
+    titulo: 'Pode, mas com cuidado ⚠️',
+    sub: 'É possível, mas avalie o impacto no orçamento antes de decidir.',
+  },
+  negado: {
+    titulo: 'Ainda não é a hora 🚫',
+    sub: 'Mas com disciplina, você chega lá. Veja o plano abaixo.',
+  },
+}
 
-    return (
-      <div className="criterio-resultado">
-        <div className="criterio-resultado-header">
-          🚀 {c.titulo} {badge}
-        </div>
-        <div className="criterio-resultado-body">
-          <p>{msg}</p>
-        </div>
-      </div>
-    )
-  }
-
-  return null
+const ICONE_MAP: Record<string, string> = {
+  aprovado: '✅',
+  juntar: '⚠️',
+  negado: '🚫',
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -241,47 +306,78 @@ export default function ResultadoSection({
   itemValor,
   itemNome,
   parcelas,
+  metaValor,
+  metaResult,
   onRefazer,
 }: Props) {
-  const { veredito, acoes, debug } = resultado
-  const { reservaAlvo, sobraLazerMensal, statusReserva, lazerPct } = debug
+  const { veredito, debug } = resultado
+  const { reservaAlvo, sobraLazerMensal, disponivel, dentro1pct, parcelaValor, parcelaCabe } = debug
 
-  const pct = reservaAlvo > 0 ? Math.min((patrimonio / reservaAlvo) * 100, 100) : 100
-  const custoVidaPct = renda > 0 ? ((custo / renda) * 100).toFixed(1) : '0.0'
+  const veredictoUI = VERDICT_MAP[veredito.tipo] ?? { titulo: veredito.titulo, sub: veredito.subtitulo ?? '' }
+  const icone = ICONE_MAP[veredito.tipo] ?? '💡'
+  const isNegado = veredito.tipo === 'negado'
+  const isJuntar = veredito.tipo === 'juntar'
+
+  // Plain-language next step (only for aprovado/juntar — negado uses CaminhoCard)
+  const proximoPasso = (() => {
+    if (veredito.tipo === 'aprovado') {
+      if (patrimonio >= itemValor)
+        return `Você já tem o dinheiro disponível. Pode comprar ${itemNome || 'o item'} agora, sem comprometer sua reserva. Parabéns pela disciplina! 🎉`
+      if (sobraLazerMensal > 0) {
+        const meses = Math.ceil(itemValor / sobraLazerMensal)
+        return `Guarde ${fmt(sobraLazerMensal)} por mês. Em ${fmtMeses(meses)} você terá o suficiente para comprar ${itemNome || 'o item'} sem criar dívidas.`
+      }
+    }
+    if (veredito.tipo === 'juntar') {
+      return `Você pode comprar parcelado, mas fique atento: a parcela de ${fmt(fluxo.parcelaValor)} precisa caber no orçamento todo mês. Não use a reserva de emergência para isso — ela é para imprevistos, não para compras.`
+    }
+    return null
+  })()
 
   return (
     <section className="card" id="section-resultado">
-      <h2>Resultado</h2>
-
-      {/* Verdict */}
+      {/* ── Verdict ── */}
       <div id="veredito-principal" className={veredito.tipo}>
-        <div className="veredito-icone">{ICONES[veredito.titulo] || '💡'}</div>
-        <div className="veredito-titulo">{veredito.titulo}</div>
-        <div className="veredito-subtitulo">{veredito.subtitulo || ''}</div>
+        <div className="veredito-icone">{icone}</div>
+        <div className="veredito-titulo">{veredictoUI.titulo}</div>
+        <div className="veredito-subtitulo">{veredictoUI.sub}</div>
       </div>
 
-      {/* Savings timeline — always visible */}
-      <PrazoCard
-        itemValor={itemValor}
-        itemNome={itemNome}
-        sobraLazerMensal={sobraLazerMensal}
+      {/* ── Rules checklist ── */}
+      <RegrasCard
         patrimonio={patrimonio}
-        vereditoTitulo={veredito.titulo}
+        reservaAlvo={reservaAlvo}
+        dentro1pct={dentro1pct}
+        disponivel={disponivel}
+        itemValor={itemValor}
+        parcelas={parcelas}
+        parcelaCabe={parcelaCabe}
+        parcelaValor={parcelaValor}
+        sobraLazerMensal={sobraLazerMensal}
       />
 
-      {/* Strategy detail */}
-      <div id="resultado-criterio">
-        <BlocoCriterio
-          criterio={criterio}
-          fluxo={fluxo}
-          patrim={patrim}
-          roiOk={roiOk}
-          ferramenta={ferramenta}
+      {/* ── Savings timeline (only for aprovado/juntar) ── */}
+      {!isNegado && (
+        <PrazoCard
+          itemValor={itemValor}
+          itemNome={itemNome}
           sobraLazerMensal={sobraLazerMensal}
+          patrimonio={patrimonio}
         />
-      </div>
+      )}
 
-      {/* Growth chart */}
+      {/* ── Path roadmap (only for negado) ── */}
+      {isNegado && (
+        <CaminhoCard
+          patrimonio={patrimonio}
+          reservaAlvo={reservaAlvo}
+          sobraLazerMensal={sobraLazerMensal}
+          itemValor={itemValor}
+          itemNome={itemNome}
+        />
+      )}
+
+      {/* ── Growth chart ── */}
       {sobraLazerMensal > 0 && (
         <GraficoPatrimonio
           patrimonioInicial={patrimonio}
@@ -293,61 +389,35 @@ export default function ResultadoSection({
         />
       )}
 
-      {/* Reserve thermometer */}
-      <div className={`termometro-container status-${statusReserva}`}>
-        <label>Termômetro da Reserva de Emergência</label>
-        <div className="termometro-bar">
-          <div id="termometro-fill" style={{ width: `${pct}%` }}></div>
-        </div>
-        <div className="termometro-labels">
-          <span>R$ 0</span>
-          <span>{fmt(patrimonio)}</span>
-          <span>Meta: {fmt(reservaAlvo)}</span>
-        </div>
-      </div>
+      {/* ── Goal impact chart ── */}
+      {metaValor > 0 &&
+        metaResult &&
+        !metaResult.metaJaAtingida &&
+        metaResult.mesesSemCompra !== null && (
+          <GraficoMeta
+            patrimonio={patrimonio}
+            sobraLazerMensal={sobraLazerMensal}
+            itemValor={itemValor}
+            itemNome={itemNome}
+            parcelas={parcelas}
+            metaValor={metaValor}
+            metaResult={metaResult}
+          />
+        )}
 
-      {/* Action plan */}
-      <div id="plano-acao" className="plano-acao">
-        <h3>Plano de Ação</h3>
-        {acoes.map((a, i) => (
-          <p key={i}>{a}</p>
-        ))}
-      </div>
-
-      {/* Calculation details */}
-      <div id="detalhes-calculo" className="detalhes">
-        <h3>Detalhes do Cálculo</h3>
-        <div className="detalhe-grid">
-          <div className="detalhe-item">
-            <div className="detalhe-label">Item desejado</div>
-            <div className="detalhe-valor">{itemNome || 'Item'}</div>
-          </div>
-          <div className="detalhe-item">
-            <div className="detalhe-label">Valor do item</div>
-            <div className="detalhe-valor">{fmt(itemValor)}</div>
-          </div>
-          <div className="detalhe-item">
-            <div className="detalhe-label">Reserva alvo</div>
-            <div className="detalhe-valor">{fmt(reservaAlvo)}</div>
-          </div>
-          <div className="detalhe-item">
-            <div className="detalhe-label">Patrimônio atual</div>
-            <div className="detalhe-valor">{fmt(patrimonio)}</div>
-          </div>
-          <div className="detalhe-item">
-            <div className="detalhe-label">Custo de vida (% renda)</div>
-            <div className="detalhe-valor">{custoVidaPct}%</div>
-          </div>
-          <div className="detalhe-item">
-            <div className="detalhe-label">Balde de lazer/mês</div>
-            <div className="detalhe-valor">
-              {fmt(sobraLazerMensal)} ({lazerPct.toFixed(1)}%)
-            </div>
-          </div>
+      {/* ── Next step (aprovado/juntar only) ── */}
+      {proximoPasso && (
+        <div className="proximo-passo-box">
+          <div className="proximo-passo-label">👉 O que fazer agora</div>
+          <div className="proximo-passo-texto">{proximoPasso}</div>
         </div>
-      </div>
+      )}
 
-      <button className="btn-secondary" onClick={onRefazer}>
+      <button
+        className="btn-secondary"
+        onClick={onRefazer}
+        style={{ marginTop: 8, width: '100%' }}
+      >
         Refazer Simulação
       </button>
     </section>

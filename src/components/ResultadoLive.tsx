@@ -23,18 +23,14 @@ const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
 const ICONES: Record<string, string> = {
-  'Compra Livre': '✅',
-  'Aprovado via Alavancagem': '🚀',
+  'Compra Aprovada': '✅',
+  'Aprovado com Ressalvas': '⚠️',
   Negado: '🚫',
-  'Juntar Primeiro': '⏳',
-  'Juntar com Calma': '💰',
 }
 
 const TIPO_CLASS: Record<string, string> = {
   aprovado: 'ok',
   negado: 'block',
-  espera: 'neutral',
-  condicional: 'neutral',
 }
 
 function prazoLabel(itemValor: number, patrimonio: number, sobraLazerMensal: number): string {
@@ -153,7 +149,7 @@ export default function ResultadoLive({
       <div className="rl-criterio-block">{criterioLine}</div>
 
       <p className="rl-hint">
-        Mude a estratégia e parcelas ao lado — o resultado atualiza aqui.
+        Mude o número de parcelas ao lado — o resultado atualiza aqui.
       </p>
     </div>
   )

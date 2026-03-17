@@ -6,6 +6,8 @@ interface Props {
   onPatrimonioChange: (v: number) => void
   reservaMeses: number
   onReservaMesesChange: (v: number) => void
+  metaValor: number
+  onMetaValorChange: (v: number) => void
 }
 
 export default function RealidadeSection({
@@ -13,6 +15,8 @@ export default function RealidadeSection({
   onPatrimonioChange,
   reservaMeses,
   onReservaMesesChange,
+  metaValor,
+  onMetaValorChange,
 }: Props) {
   return (
     <section className="card" id="section-realidade">
@@ -44,6 +48,23 @@ export default function RealidadeSection({
             defaultValue={6}
           />
           <span className="unit">meses</span>
+        </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="meta-valor">
+          Meta de Acumulação{' '}
+          <span className="hint-inline">(opcional — ex: 100.000 em 5 anos)</span>
+        </label>
+        <div className="input-group">
+          <span className="unit prefix">R$</span>
+          <NumericInput
+            id="meta-valor"
+            value={metaValor}
+            onChange={(v) => onMetaValorChange(Math.max(0, v))}
+            placeholder="0,00"
+            defaultValue={0}
+          />
         </div>
       </div>
     </section>

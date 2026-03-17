@@ -6,9 +6,12 @@ import {
   calcStatusPatrimonio,
   calcRoiAprovacao,
   calcLazerPct,
+  selectCriterioAuto,
+  calcImpactoMetaFinanceira,
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
+  MetaFinanceiraResult,
 } from './logic/index'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
@@ -37,6 +40,8 @@ interface SimulacaoResultado {
   itemValor: number
   itemNome: string
   parcelas: number
+  metaValor: number
+  metaResult: MetaFinanceiraResult | null
 }
 
 function loadFromStorage() {
@@ -57,10 +62,10 @@ export default function App() {
   const [renda, setRenda] = useState<number>(saved?.renda ?? 0)
   const [custo, setCusto] = useState<number>(saved?.custo ?? 0)
   const [patrimonio, setPatrimonio] = useState<number>(saved?.patrimonio ?? 0)
+  const [metaValor, setMetaValor] = useState<number>(saved?.metaValor ?? 0)
   const [itemNome, setItemNome] = useState<string>(saved?.itemNome ?? '')
   const [itemValor, setItemValor] = useState<number>(saved?.itemValor ?? 0)
   const [ferramenta, setFerramenta] = useState<boolean>(saved?.ferramenta ?? false)
-  const [criterio, setCriterio] = useState<Criterio>(saved?.criterio ?? 'fluxo')
   const [parcelas, setParcelas] = useState<number>(saved?.parcelas ?? 1)
   const [simulacao, setSimulacao] = useState<SimulacaoResultado | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -77,14 +82,20 @@ export default function App() {
       renda,
       custo,
       patrimonio,
+      metaValor,
       itemNome,
       itemValor,
       ferramenta,
-      criterio,
       parcelas,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [envelopes, reservaMeses, renda, custo, patrimonio, itemNome, itemValor, ferramenta, criterio, parcelas])
+  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, ferramenta, parcelas])
+
+  // Auto-selected strategy: 1% rule → patrimônio, otherwise → fluxo
+  const criterioAuto = useMemo(
+    () => selectCriterioAuto(patrimonio, itemValor),
+    [patrimonio, itemValor],
+  )
 
   // Derived values for charts
   const sobraLazerMensal = useMemo(
@@ -118,8 +129,9 @@ export default function App() {
       itemNome: itemNome.trim() || 'Item',
       ferramenta,
       envelopes,
+      parcelas,
     })
-  }, [renda, custo, patrimonio, reservaMeses, itemValor, itemNome, ferramenta, envelopes])
+  }, [renda, custo, patrimonio, reservaMeses, itemValor, itemNome, ferramenta, envelopes, parcelas])
 
   function simular() {
     if (renda <= 0) {
@@ -141,15 +153,20 @@ export default function App() {
       itemNome: itemNome.trim() || 'Item',
       ferramenta,
       envelopes,
+      parcelas,
     })
 
     const fluxo = calcFluxoCaixa(itemValor, resultado.debug.sobraLazerMensal, parcelas)
     const patrim = calcStatusPatrimonio(patrimonio, custo, itemValor)
     const roiOk = calcRoiAprovacao(patrim.statusAtual, ferramenta)
 
+    const metaResult = metaValor > 0
+      ? calcImpactoMetaFinanceira(patrimonio, sobraLazerMensal, itemValor, parcelas, metaValor)
+      : null
+
     setSimulacao({
       resultado,
-      criterio,
+      criterio: criterioAuto,
       fluxo,
       patrim,
       roiOk,
@@ -160,6 +177,8 @@ export default function App() {
       itemValor,
       itemNome: itemNome.trim() || 'Item',
       parcelas,
+      metaValor,
+      metaResult,
     })
   }
 
@@ -236,6 +255,8 @@ export default function App() {
               itemValor={simulacao.itemValor}
               itemNome={simulacao.itemNome}
               parcelas={simulacao.parcelas}
+              metaValor={simulacao.metaValor}
+              metaResult={simulacao.metaResult}
               onRefazer={novoCalculo}
             />
           </div>
@@ -274,7 +295,7 @@ export default function App() {
       {step === 4 && (
         <ResultadoLive
           resultado={resultadoLive}
-          criterio={criterio}
+          criterio={criterioAuto}
           fluxo={fluxoLive}
           patrim={patrimLive}
           roiOk={roiOkLive}
@@ -323,6 +344,8 @@ export default function App() {
                 onPatrimonioChange={setPatrimonio}
                 reservaMeses={reservaMeses}
                 onReservaMesesChange={setReservaMeses}
+                metaValor={metaValor}
+                onMetaValorChange={setMetaValor}
               />
             )}
 
@@ -339,8 +362,9 @@ export default function App() {
 
             {step === 4 && (
               <EstrategiaSection
-                criterio={criterio}
-                onCriterioChange={setCriterio}
+                criterioAuto={criterioAuto}
+                patrimonio={patrimonio}
+                itemValor={itemValor}
                 parcelas={parcelas}
                 onParcelasChange={setParcelas}
               />

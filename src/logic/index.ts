@@ -21,6 +21,7 @@ export interface SimularParams {
   itemNome: string
   ferramenta: boolean
   envelopes: Envelope[]
+  parcelas?: number
 }
 
 export interface Veredito {
@@ -34,6 +35,11 @@ export interface SimularDebug {
   lazerPct: number
   sobraLazerMensal: number
   statusReserva: StatusReserva
+  // New fields for the richer decision tree
+  disponivel: number       // patrimônio - reservaAlvo (can be negative)
+  dentro1pct: boolean      // itemValor ≤ 1% do patrimônio
+  parcelaValor: number     // itemValor / parcelas
+  parcelaCabe: boolean     // parcelaValor ≤ sobraLazerMensal
 }
 
 export interface SimularResult {
@@ -125,67 +131,124 @@ function calcStatusReserva(patrimonio: number, reservaAlvo: number): StatusReser
 /**
  * @param p SimularParams
  * @returns { veredito, acoes, debug }
+ *
+ * Decision tree:
+ * 1. Regra do 1%:  item ≤ 1% patrimônio → always approve
+ * 2. temDinheiro:  disponivel (= patrimônio - reservaAlvo) ≥ itemValor → approve
+ * 3. ferramenta:   parcelaCabe AND patrimônioNaoNegativo → approve with ressalvas
+ * 4. else:         deny
  */
 function simularLogica(p: SimularParams): SimularResult {
+  const parcelas = p.parcelas ?? 1
   const reservaAlvo = p.custo * p.reservaMeses
   const lazerPct = calcLazerPct(p.renda, p.custo, p.envelopes)
   const sobraLazerMensal = (lazerPct / 100) * p.renda
   const statusReserva = calcStatusReserva(p.patrimonio, reservaAlvo)
 
-  const debug: SimularDebug = { reservaAlvo, lazerPct, sobraLazerMensal, statusReserva }
+  const dentro1pct = p.patrimonio > 0 && p.itemValor <= p.patrimonio * 0.01
+  const disponivel = p.patrimonio - reservaAlvo
+  const temDinheiro = disponivel >= p.itemValor
+  const parcelaValor = parcelas > 0 ? p.itemValor / parcelas : p.itemValor
+  const parcelaCabe = sobraLazerMensal > 0 && parcelaValor <= sobraLazerMensal
 
-  let veredito: Veredito
-  let acoes: string[]
-
-  if (statusReserva === 'seguranca' && sobraLazerMensal >= p.itemValor) {
-    // Caso C: Compra Livre
-    veredito = { tipo: 'aprovado', titulo: 'Compra Livre' }
-    acoes = [
-      `Balde de lazer: R$ ${sobraLazerMensal.toFixed(2)}/mês.`,
-      `Item (R$ ${p.itemValor.toFixed(2)}) cabe em um único mês.`,
-      'Compra à vista sem impacto estrutural.',
-    ]
-  } else if (p.ferramenta && statusReserva === 'perigo') {
-    // Caso A: Alavancagem Profissional
-    veredito = { tipo: 'aprovado', titulo: 'Aprovado via Alavancagem' }
-    acoes = [
-      `Reserva em perigo, mas item tem potencial de ROI.`,
-      `Sobra de lazer: R$ ${sobraLazerMensal.toFixed(2)}/mês.`,
-      'Use a sobra + crédito/parcelamento.',
-    ]
-  } else if (statusReserva === 'perigo' && !p.ferramenta) {
-    // Caso B: Negado
-    const meses = sobraLazerMensal > 0 ? Math.ceil(p.itemValor / sobraLazerMensal) : null
-    veredito = { tipo: 'negado', titulo: 'Negado' }
-    acoes = [
-      `Reserva alvo: R$ ${reservaAlvo.toFixed(2)}. Patrimônio: R$ ${p.patrimonio.toFixed(2)}.`,
-      'Menos de 50% da reserva formada.',
-      meses
-        ? `Aguarde ${meses} mês(es) juntando R$ ${sobraLazerMensal.toFixed(2)}/mês do lazer.`
-        : 'Não há sobra de lazer. Revise seus envelopes.',
-    ]
-  } else if (statusReserva === 'atencao') {
-    const meses = sobraLazerMensal > 0 ? Math.ceil(p.itemValor / sobraLazerMensal) : null
-    veredito = { tipo: 'juntar', titulo: 'Juntar Primeiro' }
-    acoes = [
-      `Faltam R$ ${(reservaAlvo - p.patrimonio).toFixed(2)} para completar a reserva.`,
-      meses
-        ? `Junte o item em ${meses} mês(es) com o lazer (R$ ${sobraLazerMensal.toFixed(2)}/mês).`
-        : 'Revise seus envelopes para liberar sobra de lazer.',
-    ]
-  } else {
-    // statusReserva === 'seguranca', mas sobraLazerMensal < itemValor
-    const meses = sobraLazerMensal > 0 ? Math.ceil(p.itemValor / sobraLazerMensal) : null
-    veredito = { tipo: 'juntar', titulo: 'Juntar com Calma' }
-    acoes = [
-      `Reserva completa: R$ ${p.patrimonio.toFixed(2)} / R$ ${reservaAlvo.toFixed(2)}.`,
-      meses
-        ? `Direcione R$ ${sobraLazerMensal.toFixed(2)}/mês do lazer por ${meses} mês(es).`
-        : 'Configure seus envelopes para liberar sobra de lazer.',
-    ]
+  const debug: SimularDebug = {
+    reservaAlvo, lazerPct, sobraLazerMensal, statusReserva,
+    dentro1pct, disponivel, parcelaValor, parcelaCabe,
   }
 
-  return { veredito, acoes, debug }
+  // ── 1. REGRA DO 1% ── always approve, regardless of reserve or cash
+  if (dentro1pct) {
+    const pct = ((p.itemValor / p.patrimonio) * 100).toFixed(1)
+    return {
+      veredito: { tipo: 'aprovado', titulo: 'Compra Aprovada', subtitulo: 'Regra do 1% — risco zero' },
+      acoes: [
+        `O item (R$ ${p.itemValor.toFixed(2)}) representa ${pct}% do seu patrimônio — dentro da Regra do 1%.`,
+        'O impacto no seu patrimônio é negligenciável.',
+        'Compra aprovada sem restrições.',
+      ],
+      debug,
+    }
+  }
+
+  // ── 2. APROVADO ── has reserve + available cash beyond reserve
+  if (temDinheiro) {
+    return {
+      veredito: { tipo: 'aprovado', titulo: 'Compra Aprovada' },
+      acoes: [
+        `Reserva: R$ ${p.patrimonio.toFixed(2)} / R$ ${reservaAlvo.toFixed(2)} — completa.`,
+        `Disponível além da reserva: R$ ${disponivel.toFixed(2)}. Item: R$ ${p.itemValor.toFixed(2)}.`,
+        'Compra à vista sem comprometer a reserva de emergência.',
+      ],
+      debug,
+    }
+  }
+
+  // ── 3. FERRAMENTA EXCEPTION ──
+  if (p.ferramenta) {
+    // Paying à vista would make patrimônio negative; parcelado payments come from cash flow
+    const patrimonioNaoNegativo = parcelas > 1 || p.patrimonio >= p.itemValor
+
+    if (parcelaCabe && patrimonioNaoNegativo) {
+      const motivoBase = disponivel < 0
+        ? `Reserva incompleta: R$ ${p.patrimonio.toFixed(2)} / R$ ${reservaAlvo.toFixed(2)}.`
+        : `Sem dinheiro extra além da reserva para cobrir o item.`
+      return {
+        veredito: { tipo: 'aprovado', titulo: 'Aprovado com Ressalvas', subtitulo: 'Ferramenta de trabalho' },
+        acoes: [
+          motivoBase,
+          `Como ferramenta de trabalho: parcela de R$ ${parcelaValor.toFixed(2)}/mês cabe no lazer (R$ ${sobraLazerMensal.toFixed(2)}/mês).`,
+          'Certifique-se de que o retorno do item justifica o compromisso.',
+        ],
+        debug,
+      }
+    }
+
+    const motivoNegado = !parcelaCabe
+      ? `Parcela de R$ ${parcelaValor.toFixed(2)} excede o lazer de R$ ${sobraLazerMensal.toFixed(2)}.`
+      : `Pagamento à vista deixaria o patrimônio negativo (R$ ${p.patrimonio.toFixed(2)} < R$ ${p.itemValor.toFixed(2)}).`
+    const dicaFluxo = sobraLazerMensal > 0
+      ? `Você precisaria de ${Math.ceil(p.itemValor / sobraLazerMensal)} meses de lazer acumulado.`
+      : 'Revise seus envelopes para liberar sobra de lazer.'
+    return {
+      veredito: { tipo: 'negado', titulo: 'Negado', subtitulo: 'Ferramenta sem fluxo suficiente' },
+      acoes: [motivoNegado, 'Mesmo sendo ferramenta, o fluxo de caixa não suporta as parcelas.', dicaFluxo],
+      debug,
+    }
+  }
+
+  // ── 4. NEGADO ──
+  const hasReserve = p.patrimonio >= reservaAlvo
+
+  if (!hasReserve) {
+    const falta = reservaAlvo - p.patrimonio
+    const dicaReserva = sobraLazerMensal > 0
+      ? `Com R$ ${sobraLazerMensal.toFixed(2)}/mês de lazer, a reserva estará completa em ${Math.ceil(falta / sobraLazerMensal)} mês(es).`
+      : 'Revise seus envelopes para liberar sobra de lazer.'
+    return {
+      veredito: { tipo: 'negado', titulo: 'Negado', subtitulo: 'Sem reserva de emergência' },
+      acoes: [
+        `Reserva: R$ ${p.patrimonio.toFixed(2)} / R$ ${reservaAlvo.toFixed(2)} — faltam R$ ${falta.toFixed(2)}.`,
+        'Forme a reserva de emergência antes de qualquer compra.',
+        dicaReserva,
+      ],
+      debug,
+    }
+  }
+
+  // Has reserve, but disponivel < itemValor
+  const faltaItem = p.itemValor - disponivel
+  const dicaAcumulo = sobraLazerMensal > 0
+    ? `Acumule mais R$ ${faltaItem.toFixed(2)} (${Math.ceil(faltaItem / sobraLazerMensal)} meses de lazer).`
+    : 'Revise seus envelopes para liberar sobra de lazer.'
+  return {
+    veredito: { tipo: 'negado', titulo: 'Negado', subtitulo: 'Sem dinheiro além da reserva' },
+    acoes: [
+      `Reserva completa: R$ ${reservaAlvo.toFixed(2)}.`,
+      `Disponível além da reserva: R$ ${Math.max(0, disponivel).toFixed(2)}. Falta: R$ ${faltaItem.toFixed(2)}.`,
+      dicaAcumulo,
+    ],
+    debug,
+  }
 }
 
 // ===========================================================
@@ -234,6 +297,60 @@ function calcStatusPatrimonio(
 
 function calcRoiAprovacao(statusPatrimonio: StatusPatrimonio, ferramenta: boolean): boolean {
   return ferramenta === true && statusPatrimonio !== 'red'
+}
+
+// ===========================================================
+// IMPACTO NO OBJETIVO DE ACUMULAÇÃO
+// ===========================================================
+
+export interface MetaFinanceiraResult {
+  mesesSemCompra: number | null
+  mesesComCompra: number | null
+  atrasoMeses: number | null
+  metaJaAtingida: boolean
+}
+
+const HORIZONTE_META = 600 // 50 anos — horizonte máximo de projeção
+
+function calcImpactoMetaFinanceira(
+  patrimonio: number,
+  aporteMensal: number,
+  itemValor: number,
+  parcelas: number,
+  meta: number,
+): MetaFinanceiraResult {
+  if (meta <= 0) {
+    return { mesesSemCompra: null, mesesComCompra: null, atrasoMeses: null, metaJaAtingida: false }
+  }
+
+  if (patrimonio >= meta) {
+    return { mesesSemCompra: 0, mesesComCompra: 0, atrasoMeses: 0, metaJaAtingida: true }
+  }
+
+  if (aporteMensal <= 0) {
+    return { mesesSemCompra: null, mesesComCompra: null, atrasoMeses: null, metaJaAtingida: false }
+  }
+
+  const { semCompra, comCompra } = calcImpactoCompraNoPatrimonio(
+    patrimonio, aporteMensal, HORIZONTE_META, itemValor, parcelas,
+  )
+
+  const mesesSemCompra = calcMesQueAtingeMeta(semCompra, meta)
+  const mesesComCompra = calcMesQueAtingeMeta(comCompra, meta)
+  const atrasoMeses = calcAtrasoCompra(semCompra, comCompra, meta)
+
+  return { mesesSemCompra, mesesComCompra, atrasoMeses, metaJaAtingida: false }
+}
+
+// ===========================================================
+// SELEÇÃO AUTOMÁTICA DE CRITÉRIO
+// Regra do 1% (patrimônio) é forte: ativa quando item ≤ 1% do patrimônio.
+// Caso contrário, usa fluxo de caixa.
+// ===========================================================
+
+function selectCriterioAuto(patrimonio: number, itemValor: number): 'fluxo' | 'patrimonio' {
+  if (patrimonio > 0 && itemValor <= patrimonio * 0.01) return 'patrimonio'
+  return 'fluxo'
 }
 
 // ===========================================================
@@ -632,12 +749,14 @@ function calcAtrasoCompra(
 }
 
 export {
+  calcImpactoMetaFinanceira,
   simularLogica,
   calcLazerPct,
   calcStatusReserva,
   calcFluxoCaixa,
   calcStatusPatrimonio,
   calcRoiAprovacao,
+  selectCriterioAuto,
   CRITERIOS,
   isBigTicket,
   validarEntrada,

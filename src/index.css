@@ -773,6 +773,191 @@ input[type="number"]::-webkit-inner-spin-button {
   margin-bottom: 0;
 }
 
+/* ===== Regras Card ===== */
+.regras-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.02);
+  animation: fadeSlideIn 0.35s ease both;
+  animation-delay: 0.08s;
+}
+
+.regras-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.regras-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.regra-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+}
+
+.regra-ok    { background: rgba(16,185,129,0.06);  border-color: rgba(16,185,129,0.18); }
+.regra-falhou { background: rgba(239,68,68,0.06);  border-color: rgba(239,68,68,0.18); }
+
+.regra-icone {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.regra-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.regra-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== Caminho Card ===== */
+.caminho-card {
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin-bottom: 20px;
+  background: rgba(124,58,237,0.05);
+  animation: fadeSlideIn 0.35s ease both;
+  animation-delay: 0.15s;
+}
+
+.caminho-titulo {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.caminho-msg {
+  font-size: 0.88rem;
+  color: var(--text-subtle);
+  line-height: 1.6;
+}
+
+.caminho-fase {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.caminho-fase:last-of-type {
+  border-bottom: none;
+  margin-bottom: 16px;
+}
+
+.caminho-fase-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(124,58,237,0.25);
+  border: 1px solid rgba(124,58,237,0.4);
+  color: var(--accent-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.caminho-fase-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.caminho-fase-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.caminho-fase-prazo {
+  font-size: 0.8rem;
+  color: var(--accent-light);
+  font-weight: 500;
+}
+
+.caminho-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: var(--radius-xs);
+}
+
+.caminho-total-label {
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.caminho-total-prazo {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--accent-light);
+  letter-spacing: -0.02em;
+}
+
+/* ===== Próximo Passo ===== */
+.proximo-passo-box {
+  background: rgba(124, 58, 237, 0.07);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.proximo-passo-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-light);
+  margin-bottom: 8px;
+}
+
+.proximo-passo-texto {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.detalhes-toggle {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 /* ===== Detalhes ===== */
 .detalhes {
   margin-bottom: 20px;
