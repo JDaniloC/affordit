@@ -31,4 +31,11 @@ export interface AppState {
   parcelasExistentes: number  // parcelas mensais já comprometidas no orçamento
   // P1.4 — rendimento da reserva / juros compostos
   rendimentoAnual: number     // taxa de rendimento anual em % a.a. (0 = sem rendimento)
+  metas: Meta[]
+}
+
+export interface Meta {
+  id: number
+  nome: string
+  valor: number
 }

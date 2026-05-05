@@ -1391,6 +1391,13 @@ footer {
   font-size: 0.75rem;
 }
 
+.chart-tooltip-compra {
+  margin-top: 4px;
+  color: #f97316;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
 /* ===== Error ===== */
 .error-msg {
   color: var(--danger);
@@ -2138,6 +2145,386 @@ footer {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
   border-style: solid;
+}
+
+/* ===== Card Fila no Resultado ===== */
+.card-fila-resultado {
+  background: rgba(99, 102, 241, 0.04);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.card-fila-resultado h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.card-fila-resultado h4 {
+  margin: 12px 0 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.card-fila-intro {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+}
+
+.card-fila-hipotese {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+
+.lista-atrasos {
+  margin: 6px 0 0 0;
+  padding-left: 20px;
+}
+
+.lista-atrasos li {
+  margin-bottom: 2px;
+}
+
+.card-fila-acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ===== Cronograma Card (Ciclo F) ===== */
+.cronograma-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.cronograma-resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.cronograma-resumo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cronograma-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.cronograma-resumo strong {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cronograma-atraso-alto {
+  color: var(--warning) !important;
+}
+
+.meta-custo-patrimonio {
+  font-size: 0.78rem;
+  color: var(--warning);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.planejador-hint-investimento {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: rgba(99, 102, 241, 0.06);
+  border-left: 3px solid rgba(99, 102, 241, 0.4);
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+/* ===== Modo saudável (Ciclo F.3) ===== */
+.modo-saudavel-controles {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.modo-saudavel-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.modo-saudavel-toggle input[type="checkbox"] {
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.modo-saudavel-sliders {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.slider-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slider-field label {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.slider-field label strong {
+  color: var(--success);
+}
+
+.slider-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--success);
+}
+
+/* ===== MetaForm ===== */
+.meta-form {
+  display: grid;
+  grid-template-columns: 1fr 160px auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.meta-form-nome {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.meta-form-valor {
+  width: 100%;
+}
+
+.btn-meta-form-ok,
+.btn-meta-form-cancel {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-meta-form-ok:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--success);
+}
+
+.btn-meta-form-cancel:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--danger);
+}
+
+/* ===== Planejador ===== */
+.planejador-intro {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.banner-aviso {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--warning);
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: currentColor;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.planejador-vazio {
+  text-align: center;
+}
+
+.metas-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meta-item {
+  display: grid;
+  grid-template-columns: 24px 40px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.meta-item--inatingivel {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.meta-handle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: grab;
+  padding: 0;
+  touch-action: none;
+}
+
+.meta-handle:active {
+  cursor: grabbing;
+}
+
+.meta-item--dragging {
+  opacity: 0.5;
+}
+
+.meta-item--hover {
+  border-color: var(--accent, #6366f1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.meta-pos {
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.meta-nome {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.meta-detalhe {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.meta-quando {
+  color: var(--text);
+}
+
+.meta-badge-inatingivel {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.meta-acoes {
+  display: flex;
+  gap: 4px;
+}
+
+.meta-acoes button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.meta-acoes button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.meta-acoes button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-add-meta {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: var(--text-muted);
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-add-meta:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+/* Botão do header para o planejador */
+.btn-header-planejador {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-header-planejador:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.badge-metas {
+  background: var(--accent);
+  color: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 /* ===== Resumo Step 4 (números brutos, sem veredito) ===== */

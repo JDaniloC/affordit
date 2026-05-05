@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Envelope, Criterio, TipoCompra } from './types'
+import { Envelope, Criterio, TipoCompra, Meta } from './types'
 import {
   simularLogica,
   calcFluxoCaixa,
@@ -22,6 +22,7 @@ import {
   ScoreSaudeResult,
   RiscoPatrimonio,
 } from './logic/index'
+import PlanejadorView from './components/PlanejadorView'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
 import SonhoSection from './components/SonhoSection'
@@ -97,6 +98,8 @@ export default function App() {
   const [taxaJuros, setTaxaJuros] = useState<number>(saved?.taxaJuros ?? 0)
   const [parcelasExistentes, setParcelasExistentes] = useState<number>(saved?.parcelasExistentes ?? 0)
   const [rendimentoAnual, setRendimentoAnual] = useState<number>(saved?.rendimentoAnual ?? 0)
+  const [metas, setMetas] = useState<Meta[]>(saved?.metas ?? [])
+  const [view, setView] = useState<'simulador' | 'planejador'>('simulador')
   // Derived: ferramenta boolean from tipoCompra
   const ferramenta = tipoCompra === 'ferramenta'
   const [simulacao, setSimulacao] = useState<SimulacaoResultado | null>(null)
@@ -125,9 +128,10 @@ export default function App() {
       taxaJuros,
       parcelasExistentes,
       rendimentoAnual,
+      metas,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes, rendimentoAnual])
+  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes, rendimentoAnual, metas])
 
   // Auto-selected strategy: 1% rule → patrimônio, otherwise → fluxo
   const criterioAuto = useMemo(
@@ -327,6 +331,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  if (view === 'planejador') {
+    return (
+      <PlanejadorView
+        metas={metas}
+        onMetasChange={setMetas}
+        sobraLazerMensal={sobraLazerMensal}
+        patrimonio={patrimonio}
+        reservaAlvo={custo * reservaMeses}
+        metaValor={metaValor}
+        rendimentoMensalEfetivo={rendimentoMensalEfetivo}
+        onVoltar={() => setView('simulador')}
+        onSimularMeta={(m) => {
+          setItemNome(m.nome)
+          setItemValor(m.valor)
+          setView('simulador')
+          setStep(3)
+        }}
+      />
+    )
+  }
+
   // Result page
   if (step === 5 && simulacao) {
     return (
@@ -336,6 +361,15 @@ export default function App() {
             ← Voltar
           </button>
           <h1>Resultado</h1>
+          <button
+            type="button"
+            className="btn-header-planejador"
+            onClick={() => setView('planejador')}
+            aria-label="Abrir planejador de metas"
+          >
+            📋 Minhas metas
+            {metas.length > 0 && <span className="badge-metas">{metas.length}</span>}
+          </button>
         </header>
         <main>
           <div className="col-form" style={{ maxWidth: 660, margin: '0 auto' }}>
@@ -365,6 +399,15 @@ export default function App() {
               rendimentoAnual={simulacao.rendimentoAnual}
               scoreSaude={simulacao.scoreSaude}
               risco={simulacao.risco}
+              metas={metas}
+              onAdicionarItemAFila={() => {
+                const id = metas.reduce((m, x) => Math.max(m, x.id), 0) + 1
+                setMetas([
+                  ...metas,
+                  { id, nome: simulacao.itemNome, valor: simulacao.itemValor },
+                ])
+              }}
+              onAbrirPlanejador={() => setView('planejador')}
               onRefazer={novoCalculo}
             />
           </div>
@@ -417,6 +460,15 @@ export default function App() {
   return (
     <div id="app">
       <header>
+        <button
+          type="button"
+          className="btn-header-planejador"
+          onClick={() => setView('planejador')}
+          aria-label="Abrir planejador de metas"
+        >
+          📋 Minhas metas
+          {metas.length > 0 && <span className="badge-metas">{metas.length}</span>}
+        </button>
         <h1>Posso Comprar?</h1>
         <p className="subtitle">
           Simule a viabilidade de uma compra com base nos seus envelopes financeiros.

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Criterio, TipoCompra } from '../types'
+import type { Meta } from '../types'
 import {
   SimularResult,
   FluxoCaixaResult,
@@ -11,6 +12,10 @@ import {
   NivelSaude,
   CRITERIOS,
   RiscoPatrimonio,
+  calcCronogramaMetas,
+  calcMesItemAposFila,
+  formatMesAbreviado,
+  formatPrazoBR,
 } from '../logic/index'
 import GraficoPatrimonio from './GraficoPatrimonio'
 import GraficoMeta from './GraficoMeta'
@@ -51,6 +56,9 @@ interface Props {
   scoreSaude: ScoreSaudeResult
   // Ciclo 0 — risco de patrimônio
   risco: RiscoPatrimonio
+  metas: Meta[]
+  onAdicionarItemAFila: () => void
+  onAbrirPlanejador: () => void
   onRefazer: () => void
 }
 
@@ -345,6 +353,9 @@ export default function ResultadoSection({
   rendimentoAnual,
   scoreSaude,
   risco,
+  metas,
+  onAdicionarItemAFila,
+  onAbrirPlanejador,
   onRefazer,
 }: Props) {
   const { veredito, debug } = resultado
@@ -364,6 +375,32 @@ export default function ResultadoSection({
   const icone = ICONE_MAP[veredito.tipo] ?? '💡'
   const isNegado = veredito.tipo === 'negado'
   const isJuntar = veredito.tipo === 'juntar'
+
+  // ── Fila de metas ──
+  const headStart = Math.max(0, patrimonio - reservaAlvo)
+  const cronogramaSemItem = calcCronogramaMetas(metas, sobraLazerMensal, headStart)
+  const itemVirtual: import('../types').Meta = { id: -999, nome: itemNome, valor: itemValor }
+  const cronogramaComItemNoTopo = calcCronogramaMetas(
+    [itemVirtual, ...metas],
+    sobraLazerMensal,
+    headStart,
+  )
+  const itemAposFila = calcMesItemAposFila(itemValor, metas, sobraLazerMensal, headStart)
+
+  const atrasos = metas.map((m) => {
+    const antes = cronogramaSemItem.agendadas.find((a) => a.meta.id === m.id)
+    const depois = cronogramaComItemNoTopo.agendadas.find((a) => a.meta.id === m.id)
+    if (!antes && !depois) return { meta: m, atraso: null as number | null, virouInatingivel: true }
+    if (!antes) return { meta: m, atraso: null, virouInatingivel: false }
+    if (!depois) return { meta: m, atraso: null, virouInatingivel: true }
+    return {
+      meta: m,
+      atraso: depois.mesQueCompleta - antes.mesQueCompleta,
+      virouInatingivel: false,
+    }
+  })
+
+  const itemJaNaFila = metas.some((m) => m.nome === itemNome && m.valor === itemValor)
 
   // Plain-language next step (only for aprovado/juntar — negado uses CaminhoCard)
   const proximoPasso = (() => {
@@ -390,6 +427,63 @@ export default function ResultadoSection({
         <div className="veredito-subtitulo">{veredictoUI.sub}</div>
         <ChipsDeRisco risco={risco} />
       </div>
+
+      {/* ── Fila de metas ── */}
+      {metas.length > 0 && (
+        <section className="card card-fila-resultado">
+          <h3>📋 Considerando suas metas em fila</h3>
+          <p className="card-fila-intro">
+            Você tem <strong>{metas.length}</strong> meta{metas.length === 1 ? '' : 's'} cadastrada{metas.length === 1 ? '' : 's'} antes desta compra.
+          </p>
+
+          <div className="card-fila-hipotese">
+            <h4>Hipótese A — Comprar agora (pular a fila)</h4>
+            <p>"{itemNome || 'Item'}" pode ser comprado hoje, mas atrasa:</p>
+            <ul className="lista-atrasos">
+              {atrasos.map(({ meta, atraso, virouInatingivel }) => (
+                <li key={meta.id}>
+                  <strong>{meta.nome}</strong>:{' '}
+                  {virouInatingivel
+                    ? 'fica inatingível'
+                    : atraso === null || atraso === 0
+                      ? 'sem impacto'
+                      : `+${formatPrazoBR(atraso)}`}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {!itemJaNaFila && (
+            <div className="card-fila-hipotese">
+              <h4>Hipótese B — Esperar a vez na fila</h4>
+              {itemAposFila.mes !== null ? (
+                <p>
+                  Esperando suas {metas.length} meta{metas.length === 1 ? '' : 's'} atua{metas.length === 1 ? 'l' : 'is'} terminare{metas.length === 1 ? 'm' : 'm'},
+                  você poderá comprar "{itemNome || 'Item'}" em{' '}
+                  <strong>{formatMesAbreviado(itemAposFila.mes)}</strong>{' '}
+                  (cerca de {formatPrazoBR(itemAposFila.mes)}).
+                </p>
+              ) : (
+                <p>
+                  Com sua sobra atual, este item somado à fila ficaria inatingível dentro do
+                  horizonte de planejamento.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="card-fila-acoes">
+            {!itemJaNaFila && (
+              <button type="button" className="btn-secondary" onClick={onAdicionarItemAFila}>
+                + Adicionar à fila
+              </button>
+            )}
+            <button type="button" className="btn-secondary" onClick={onAbrirPlanejador}>
+              📋 Ver minhas metas
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── Rules checklist ── */}
       <RegrasCard

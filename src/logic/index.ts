@@ -838,6 +838,332 @@ function calcAtrasoCompra(
 }
 
 // ===========================================================
+// PLANEJADOR DE METAS MÚLTIPLAS (Ciclo F)
+// ===========================================================
+
+export interface Meta {
+  id: number
+  nome: string
+  valor: number
+}
+
+export interface MetaAgendada {
+  meta: Meta
+  posicao: number
+  mesQueComeca: number
+  mesQueCompleta: number
+  mesesParaCompletar: number
+  saldoInicial: number
+}
+
+export interface CronogramaResult {
+  agendadas: MetaAgendada[]
+  metasInatingiveis: Meta[]
+}
+
+const HORIZONTE_CRONOGRAMA = 600 // 50 anos
+const HORIZONTE_PATRIMONIO = 600 // 50 anos
+
+export interface AtrasoPorMeta {
+  id: number
+  meses: number | null
+}
+
+export interface AtrasoPatrimonio {
+  mesesSemFila: number | null
+  mesesComFila: number | null
+  atrasoTotal: number | null
+  atrasoPorMeta: AtrasoPorMeta[]
+}
+
+function _trajetoriaPatrimonio(
+  patrimonio: number,
+  sobraMensal: number,
+  taxaMensal: number,
+  deducoes: Array<{ mes: number; valor: number }>,
+  horizonte: number,
+): number[] {
+  const r = taxaMensal > 0 ? taxaMensal / 100 : 0
+  const dedMap = new Map<number, number>()
+  for (const d of deducoes) dedMap.set(d.mes, (dedMap.get(d.mes) ?? 0) + d.valor)
+  // Deduções no mês 0 reduzem imediatamente o patrimônio (compras feitas "agora",
+  // pagas com o head start acima da reserva).
+  const dedMes0 = dedMap.get(0) ?? 0
+  let acumulado = patrimonio - dedMes0
+  const traj: number[] = [acumulado]
+  for (let t = 1; t <= horizonte; t++) {
+    acumulado = r > 0 ? acumulado * (1 + r) + sobraMensal : acumulado + sobraMensal
+    const ded = dedMap.get(t)
+    if (ded) acumulado -= ded
+    traj.push(acumulado)
+  }
+  return traj
+}
+
+function _primeiroMesQueAtinge(traj: number[], meta: number): number | null {
+  for (let i = 0; i < traj.length; i++) {
+    if (traj[i] >= meta) return i
+  }
+  return null
+}
+
+/**
+ * Cronograma "saudável": adia cada meta até que dois critérios sejam
+ * satisfeitos simultaneamente — (1) o valor da meta seja no máximo
+ * `pctMaxPatrimonio` do patrimônio acumulado naquele mês; (2) a compra
+ * atrase a meta de patrimônio em no máximo `atrasoMaxPorMeta` meses.
+ * Mantém a ordem da fila do usuário; não reordena.
+ */
+function calcCronogramaSaudavel(
+  metas: Meta[],
+  patrimonio: number,
+  sobraMensal: number,
+  taxaMensal: number,
+  metaValor: number,
+  pctMaxPatrimonio: number,
+  atrasoMaxPorMeta: number,
+  reservaAlvo: number,
+): CronogramaResult {
+  const horizonte = HORIZONTE_CRONOGRAMA
+  const agendadas: MetaAgendada[] = []
+  const inatingiveis: Meta[] = []
+  let mesMinimo = 0
+
+  for (let i = 0; i < metas.length; i++) {
+    const m = metas[i]
+    const valor = Math.max(0, m.valor)
+    let mesEscolhido: number | null = null
+
+    const filaAteAqui = agendadas.map((a) => ({
+      mes: a.mesQueCompleta,
+      valor: a.meta.valor,
+    }))
+
+    // trajetória já fixada pelas compras anteriores
+    const trajAtual = _trajetoriaPatrimonio(
+      patrimonio,
+      sobraMensal,
+      taxaMensal,
+      filaAteAqui,
+      horizonte,
+    )
+
+    for (let t = mesMinimo; t <= horizonte; t++) {
+      const patrimonioNoMomento = trajAtual[t]
+      if (patrimonioNoMomento <= 0) continue
+      // Reserva precisa permanecer coberta após a compra
+      if (patrimonioNoMomento - valor < reservaAlvo) continue
+      // Critério 1: valor ≤ X% do patrimônio
+      if (patrimonioNoMomento * pctMaxPatrimonio < valor) continue
+
+      // Critério 2: atraso marginal na meta de patrimônio
+      if (metaValor > 0) {
+        const filaCom = [...filaAteAqui, { mes: t, valor }]
+        const trajCom = _trajetoriaPatrimonio(
+          patrimonio,
+          sobraMensal,
+          taxaMensal,
+          filaCom,
+          horizonte,
+        )
+        const mesSem = _primeiroMesQueAtinge(trajAtual, metaValor)
+        const mesCom = _primeiroMesQueAtinge(trajCom, metaValor)
+        if (mesSem !== null && mesCom === null) continue
+        if (mesSem !== null && mesCom !== null) {
+          const atrasoMarginal = mesCom - mesSem
+          if (atrasoMarginal > atrasoMaxPorMeta) continue
+        }
+      }
+
+      mesEscolhido = t
+      break
+    }
+
+    if (mesEscolhido === null) {
+      inatingiveis.push(m)
+      continue
+    }
+
+    agendadas.push({
+      meta: m,
+      posicao: i + 1,
+      mesQueComeca: mesMinimo,
+      mesQueCompleta: mesEscolhido,
+      mesesParaCompletar: mesEscolhido - mesMinimo,
+      saldoInicial: 0,
+    })
+    mesMinimo = mesEscolhido + 1
+  }
+
+  return { agendadas, metasInatingiveis: inatingiveis }
+}
+
+/**
+ * Retorna a trajetória do patrimônio mês a mês, com aporte mensal e
+ * deduções pontuais (uma por compra da fila). Útil para gráficos.
+ */
+function calcTrajetoriaPatrimonio(
+  patrimonio: number,
+  sobraMensal: number,
+  taxaMensal: number,
+  meses: number,
+  filaAgendada: Array<{ valor: number; mesQueCompleta: number }>,
+): number[] {
+  return _trajetoriaPatrimonio(
+    patrimonio,
+    sobraMensal,
+    taxaMensal,
+    filaAgendada.map((f) => ({ mes: f.mesQueCompleta, valor: f.valor })),
+    meses,
+  )
+}
+
+/**
+ * Calcula quanto cada meta da fila atrasa o objetivo de acumulação de patrimônio.
+ * Compara a trajetória do patrimônio "sem fila" vs "com fila completa" e o custo
+ * marginal de cada meta (quantos meses a mais o usuário leva para atingir metaValor
+ * por causa daquela compra).
+ */
+function calcAtrasoPatrimonioPorFila(
+  patrimonio: number,
+  metaValor: number,
+  sobraMensal: number,
+  taxaMensal: number,
+  filaAgendada: Array<{ id: number; valor: number; mesQueCompleta: number }>,
+): AtrasoPatrimonio {
+  const semDado: AtrasoPatrimonio = {
+    mesesSemFila: null,
+    mesesComFila: null,
+    atrasoTotal: null,
+    atrasoPorMeta: filaAgendada.map((m) => ({ id: m.id, meses: null })),
+  }
+  if (metaValor <= 0) return semDado
+
+  const trajSem = _trajetoriaPatrimonio(patrimonio, sobraMensal, taxaMensal, [], HORIZONTE_PATRIMONIO)
+  const trajCom = _trajetoriaPatrimonio(
+    patrimonio,
+    sobraMensal,
+    taxaMensal,
+    filaAgendada.map((m) => ({ mes: m.mesQueCompleta, valor: m.valor })),
+    HORIZONTE_PATRIMONIO,
+  )
+  const mesesSem = _primeiroMesQueAtinge(trajSem, metaValor)
+  const mesesCom = _primeiroMesQueAtinge(trajCom, metaValor)
+  const atrasoTotal =
+    mesesSem !== null && mesesCom !== null ? mesesCom - mesesSem : null
+
+  const atrasoPorMeta = filaAgendada.map((meta) => {
+    const outras = filaAgendada.filter((m) => m.id !== meta.id)
+    const trajSemI = _trajetoriaPatrimonio(
+      patrimonio,
+      sobraMensal,
+      taxaMensal,
+      outras.map((m) => ({ mes: m.mesQueCompleta, valor: m.valor })),
+      HORIZONTE_PATRIMONIO,
+    )
+    const mesesSemI = _primeiroMesQueAtinge(trajSemI, metaValor)
+    if (mesesCom === null || mesesSemI === null) return { id: meta.id, meses: null }
+    return { id: meta.id, meses: mesesCom - mesesSemI }
+  })
+
+  return { mesesSemFila: mesesSem, mesesComFila: mesesCom, atrasoTotal, atrasoPorMeta }
+}
+
+
+function calcCronogramaMetas(
+  metas: Meta[],
+  sobraMensal: number,
+  headStart: number,
+): CronogramaResult {
+  const agendadas: MetaAgendada[] = []
+  const inatingiveis: Meta[] = []
+  let saldoCarregado = Math.max(0, headStart)
+  let mesAcumulado = 0
+
+  for (let i = 0; i < metas.length; i++) {
+    const m = metas[i]
+    const valor = Math.max(0, m.valor)
+
+    if (sobraMensal <= 0 && saldoCarregado < valor) {
+      inatingiveis.push(m)
+      continue
+    }
+
+    const saldoInicial = saldoCarregado
+    const falta = valor - saldoCarregado
+
+    if (falta <= 0) {
+      agendadas.push({
+        meta: m,
+        posicao: i + 1,
+        mesQueComeca: mesAcumulado,
+        mesQueCompleta: mesAcumulado,
+        mesesParaCompletar: 0,
+        saldoInicial,
+      })
+      saldoCarregado = -falta
+      continue
+    }
+
+    const mesesParaCompletar = Math.ceil(falta / sobraMensal)
+    const mesQueCompleta = mesAcumulado + mesesParaCompletar
+
+    if (mesQueCompleta > HORIZONTE_CRONOGRAMA) {
+      inatingiveis.push(m)
+      continue
+    }
+
+    const totalAcumulado = saldoCarregado + mesesParaCompletar * sobraMensal
+    agendadas.push({
+      meta: m,
+      posicao: i + 1,
+      mesQueComeca: mesAcumulado,
+      mesQueCompleta,
+      mesesParaCompletar,
+      saldoInicial,
+    })
+    saldoCarregado = totalAcumulado - valor
+    mesAcumulado = mesQueCompleta
+  }
+
+  return { agendadas, metasInatingiveis: inatingiveis }
+}
+
+/**
+ * Formata um número de meses como "X mês(es)" ou "Y ano(s) e Z mês(es)".
+ * Útil para humanizar prazos longos.
+ */
+function formatPrazoBR(meses: number): string {
+  if (meses <= 0) return 'agora'
+  if (meses < 12) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`
+  const anos = Math.floor(meses / 12)
+  const resto = meses % 12
+  const anosStr = `${anos} ${anos === 1 ? 'ano' : 'anos'}`
+  return resto === 0 ? anosStr : `${anosStr} e ${resto} ${resto === 1 ? 'mês' : 'meses'}`
+}
+
+function formatMesAbreviado(offset: number, ref: Date = new Date()): string {
+  const d = new Date(ref.getFullYear(), ref.getMonth() + offset, 1)
+  const mes = d.toLocaleDateString('pt-BR', { month: 'short' })
+  const ano = d.getFullYear()
+  return `${mes}/${ano}`
+}
+
+function calcMesItemAposFila(
+  itemValor: number,
+  metas: Meta[],
+  sobraMensal: number,
+  headStart: number,
+): { mes: number | null } {
+  const itemVirtual: Meta = { id: -1, nome: '__item_virtual__', valor: itemValor }
+  const cronograma = calcCronogramaMetas([...metas, itemVirtual], sobraMensal, headStart)
+  const last = cronograma.agendadas[cronograma.agendadas.length - 1]
+  if (!last || last.meta.id !== -1) return { mes: null }
+  if (cronograma.metasInatingiveis.length > 0) return { mes: null }
+  return { mes: last.mesQueCompleta }
+}
+
+// ===========================================================
 // AVISOS EDUCATIVOS (Ciclo A)
 // ===========================================================
 
@@ -1095,6 +1421,13 @@ function calcScoreSaude(
 }
 
 export {
+  calcCronogramaMetas,
+  calcMesItemAposFila,
+  calcAtrasoPatrimonioPorFila,
+  calcCronogramaSaudavel,
+  calcTrajetoriaPatrimonio,
+  formatMesAbreviado,
+  formatPrazoBR,
   calcCorte5050,
   calcRiscoPatrimonio,
   compoeVeredito,
