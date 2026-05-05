@@ -32,7 +32,7 @@ import StepperActions from './components/StepperActions'
 import ChartDistribuicao from './components/ChartDistribuicao'
 import ChartReservaViva from './components/ChartReservaViva'
 import ChartPrazoVivo from './components/ChartPrazoVivo'
-import ResultadoLive from './components/ResultadoLive'
+import ResumoStep4 from './components/ResumoStep4'
 
 const STORAGE_KEY = 'affordit_state'
 
@@ -173,37 +173,6 @@ export default function App() {
     () => calcScoreSaude(renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes),
     [renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes],
   )
-
-  const fluxoLive: FluxoCaixaResult = useMemo(
-    () => calcFluxoCaixa(itemValor, sobraLazerMensal, parcelas),
-    [itemValor, sobraLazerMensal, parcelas],
-  )
-
-  const patrimLive: StatusPatrimonioResult = useMemo(
-    () => calcStatusPatrimonio(patrimonio, custo, itemValor),
-    [patrimonio, custo, itemValor],
-  )
-
-  const roiOkLive = useMemo(
-    () => calcRoiAprovacao(patrimLive.statusAtual, ferramenta),
-    [patrimLive, ferramenta],
-  )
-
-  const resultadoLive = useMemo(() => {
-    if (renda <= 0 || itemValor <= 0) return null
-    return simularLogica({
-      renda,
-      custo,
-      patrimonio,
-      reservaMeses,
-      itemValor,
-      itemNome: itemNome.trim() || 'Item',
-      ferramenta,
-      envelopes,
-      parcelas,
-      parcelasExistentes,
-    })
-  }, [renda, custo, patrimonio, reservaMeses, itemValor, itemNome, ferramenta, envelopes, parcelas, parcelasExistentes])
 
   function simular() {
     if (renda <= 0) {
@@ -432,17 +401,14 @@ export default function App() {
         />
       )}
       {step === 4 && (
-        <ResultadoLive
-          resultado={resultadoLive}
-          criterio={criterioAuto}
-          fluxo={fluxoLive}
-          patrim={patrimLive}
-          roiOk={roiOkLive}
-          ferramenta={ferramenta}
-          sobraLazerMensal={sobraLazerMensal}
+        <ResumoStep4
           itemValor={itemValor}
           itemNome={itemNome || 'Item'}
+          parcelas={parcelas}
+          parcelaEfetiva={parcelaEfetiva}
+          sobraLazerMensal={sobraLazerMensal}
           patrimonio={patrimonio}
+          custoFinanciamento={custoFinanciamentoLive}
         />
       )}
     </div>

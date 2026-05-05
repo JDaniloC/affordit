@@ -2109,6 +2109,36 @@ footer {
   font-style: italic;
 }
 
+/* ===== Resumo Step 4 (números brutos, sem veredito) ===== */
+.resumo-step4-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resumo-step4-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.resumo-label {
+  color: var(--text-muted);
+}
+
+.resumo-valor {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Estratégia preview mini cards */
 .estrategia-mini-grid {
   display: grid;
