@@ -1,5 +1,6 @@
 import React from 'react'
 import { TipoCompra } from '../types'
+import { calcCustoOcultoVeiculo } from '../logic/index'
 import NumericInput from './NumericInput'
 
 interface Props {
@@ -107,7 +108,7 @@ export default function SonhoSection({
           </p>
 
           <div className="field">
-            <label htmlFor="manutencao-mensal">Custo mensal de manutenção</label>
+            <label htmlFor="manutencao-mensal">Custos mensais do bem</label>
             <div className="input-group">
               <span className="unit prefix">R$</span>
               <NumericInput
@@ -118,8 +119,17 @@ export default function SonhoSection({
               />
             </div>
             <p className="field-hint">
-              IPVA/seguro prorrateado, combustível, condomínio, IPTU — quanto custa manter o bem por mês.
+              Manutenção, IPVA/seguro prorrateado, combustível, condomínio, IPTU — tudo que sai do bolso todo mês por causa do bem.
             </p>
+            {itemValor > 0 && (
+              <button
+                type="button"
+                className="btn-sugerir-custo"
+                onClick={() => onManutencaoMensalChange(calcCustoOcultoVeiculo(itemValor))}
+              >
+                💡 Não sabe? Sugerir 1% do valor (R$ {calcCustoOcultoVeiculo(itemValor).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês)
+              </button>
+            )}
           </div>
 
           <div className="field">

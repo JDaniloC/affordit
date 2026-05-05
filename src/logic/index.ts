@@ -838,6 +838,22 @@ function calcAtrasoCompra(
 }
 
 // ===========================================================
+// AVISOS EDUCATIVOS (Ciclo A)
+// ===========================================================
+
+/**
+ * Regra 50/30/20: custo de vida deve ficar em até 50% da renda.
+ * @returns valor a cortar para chegar a 50%, ou null se já está OK
+ *          ou se renda/custo são inválidos.
+ */
+function calcCorte5050(custo: number, renda: number): number | null {
+  if (renda <= 0 || custo <= 0) return null
+  const limite = renda * 0.5
+  if (custo <= limite) return null
+  return custo - limite
+}
+
+// ===========================================================
 // RISCO DE PATRIMÔNIO (Ciclo 0)
 // Camada que rebaixa o veredito existente quando a compra
 // representa risco material ao patrimônio do usuário.
@@ -1079,6 +1095,7 @@ function calcScoreSaude(
 }
 
 export {
+  calcCorte5050,
   calcRiscoPatrimonio,
   compoeVeredito,
   calcCustoComJuros,

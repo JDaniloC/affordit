@@ -2109,6 +2109,37 @@ footer {
   font-style: italic;
 }
 
+/* ===== Avisos educativos (Ciclo A) ===== */
+.alerta-5050 {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--warning);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.btn-sugerir-custo {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.btn-sugerir-custo:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-style: solid;
+}
+
 /* ===== Resumo Step 4 (números brutos, sem veredito) ===== */
 .resumo-step4-lista {
   list-style: none;

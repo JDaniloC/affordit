@@ -1,6 +1,6 @@
 import React from 'react'
 import { Envelope } from '../types'
-import { calcLazerPct } from '../logic/index'
+import { calcLazerPct, calcCorte5050 } from '../logic/index'
 import NumericInput from './NumericInput'
 
 interface Props {
@@ -26,6 +26,9 @@ export default function ConfigSection({
 }: Props) {
   const total = envelopes.reduce((acc, e) => acc + (e.pct || 0), 0)
   const lazer = calcLazerPct(renda, custo, envelopes)
+  const corte5050 = calcCorte5050(custo, renda)
+  const fmt = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
   function addEnvelope() {
     onEnvelopesChange((prev) => {
@@ -74,6 +77,13 @@ export default function ConfigSection({
             placeholder="0,00"
           />
         </div>
+        {corte5050 !== null && (
+          <div className="alerta-5050">
+            <strong>⚠ Acima de 50% da renda.</strong> Pela regra 50/30/20, seu custo
+            comprometeria a margem para poupar. Para ficar dentro de 50%, ele precisaria
+            cair {fmt(corte5050)}.
+          </div>
+        )}
       </div>
 
       <div className="field">
