@@ -530,6 +530,73 @@ input[type="number"]::-webkit-inner-spin-button {
   font-weight: 400;
 }
 
+/* ===== Chips de Risco (Ciclo 0) ===== */
+.chips-de-risco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.chip-risco {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+}
+
+.chip-risco-amarelo {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--warning);
+}
+
+.chip-risco-laranja {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.30);
+  color: #f97316;
+}
+
+.chip-risco-vermelho {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.30);
+  color: var(--danger);
+}
+
+.chip-risco-icone {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.chip-risco-texto {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.chip-risco-expandir {
+  background: none;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: currentColor;
+  opacity: 0.7;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.chip-risco-expandir:hover {
+  opacity: 1;
+}
+
 /* ===== Prazo Card ===== */
 .prazo-card {
   border-radius: var(--radius-sm);

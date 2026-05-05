@@ -838,6 +838,142 @@ function calcAtrasoCompra(
 }
 
 // ===========================================================
+// RISCO DE PATRIMÔNIO (Ciclo 0)
+// Camada que rebaixa o veredito existente quando a compra
+// representa risco material ao patrimônio do usuário.
+// ===========================================================
+
+export type TipoCompra = 'lazer' | 'ferramenta' | 'passivoAltoValor'
+
+export type ChipRisco =
+  | { tipo: 'pct_patrimonio'; pct: number }
+  | { tipo: 'lazer_com_parcelas' }
+  | { tipo: 'parcela_consome_lazer'; pct: number }
+  | { tipo: 'reserva_abaixo_alvo' }
+  | { tipo: 'atraso_meta'; meses: number }
+  | { tipo: 'dti_alto'; pct: number }
+
+export type TierRisco = 'verde' | 'amarelo' | 'vermelho'
+
+export interface RiscoPatrimonio {
+  tier: TierRisco
+  motivos: ChipRisco[]
+}
+
+export interface CalcRiscoPatrimonioParams {
+  patrimonio: number
+  valorCompra: number
+  tipoCompra: TipoCompra
+  parcelasExistentes: number
+  parcelaNova: number
+  sobraLazerMensal: number
+  dtiPos: number              // fração 0..1
+  atrasoMetaMeses: number | null
+  reservaAlvo: number
+  patrimonioPosCompra: number
+}
+
+const _tierOrder: Record<TierRisco, number> = { verde: 0, amarelo: 1, vermelho: 2 }
+const _tierByIndex: TierRisco[] = ['verde', 'amarelo', 'vermelho']
+
+function _tierFaixa(pct: number, tipo: TipoCompra): TierRisco {
+  if (tipo === 'lazer') {
+    if (pct < 0.05) return 'verde'
+    if (pct <= 0.15) return 'amarelo'
+    return 'vermelho'
+  }
+  // ferramenta e passivoAltoValor compartilham faixa mais permissiva.
+  // Para passivoAltoValor a régua final é dominada pelos gatilhos
+  // (DTI, reserva, etc) que já refletem validarPassivoAltoValor.
+  if (pct < 0.10) return 'verde'
+  if (pct <= 0.25) return 'amarelo'
+  return 'vermelho'
+}
+
+function calcRiscoPatrimonio(p: CalcRiscoPatrimonioParams): RiscoPatrimonio {
+  const motivos: ChipRisco[] = []
+  const patrimonioInsuficiente = p.patrimonio < p.reservaAlvo
+  const pctPatrimonio = p.valorCompra / Math.max(p.patrimonio, 1)
+  const tierBase = _tierFaixa(pctPatrimonio, p.tipoCompra)
+
+  if (tierBase !== 'verde') {
+    motivos.push({ tipo: 'pct_patrimonio', pct: pctPatrimonio })
+  }
+
+  // Gatilhos que apenas adicionam chip (sem rebaixar diretamente).
+  // Atraso ≤ 6 meses: chip amarelo informativo.
+  if (p.atrasoMetaMeses !== null && p.atrasoMetaMeses > 0 && p.atrasoMetaMeses <= 6) {
+    motivos.push({ tipo: 'atraso_meta', meses: p.atrasoMetaMeses })
+  }
+
+  // Gatilhos que rebaixam 1 tier (compartilham o cap).
+  let rebaixar1 = false
+
+  if (p.parcelasExistentes > 0 && p.tipoCompra === 'lazer') {
+    motivos.push({ tipo: 'lazer_com_parcelas' })
+    rebaixar1 = true
+  }
+
+  if (p.sobraLazerMensal > 0 && p.parcelaNova / p.sobraLazerMensal > 0.5) {
+    motivos.push({ tipo: 'parcela_consome_lazer', pct: p.parcelaNova / p.sobraLazerMensal })
+    rebaixar1 = true
+  }
+
+  if (p.dtiPos > 0.30) {
+    motivos.push({ tipo: 'dti_alto', pct: p.dtiPos })
+    rebaixar1 = true
+  }
+
+  if (p.atrasoMetaMeses !== null && p.atrasoMetaMeses > 6 && p.atrasoMetaMeses <= 12) {
+    motivos.push({ tipo: 'atraso_meta', meses: p.atrasoMetaMeses })
+    rebaixar1 = true
+  }
+
+  // Gatilhos que forçam vermelho (ignoram cap).
+  let forcarVermelho = false
+
+  if (patrimonioInsuficiente) {
+    forcarVermelho = true
+  }
+
+  if (p.patrimonioPosCompra < p.reservaAlvo) {
+    motivos.push({ tipo: 'reserva_abaixo_alvo' })
+    forcarVermelho = true
+  }
+
+  if (p.atrasoMetaMeses !== null && p.atrasoMetaMeses > 12) {
+    motivos.push({ tipo: 'atraso_meta', meses: p.atrasoMetaMeses })
+    forcarVermelho = true
+  }
+
+  let tierFinal: TierRisco = tierBase
+  if (rebaixar1) {
+    tierFinal = _tierByIndex[Math.min(_tierOrder[tierFinal] + 1, 2)]
+  }
+  if (forcarVermelho) {
+    tierFinal = 'vermelho'
+  }
+
+  return { tier: tierFinal, motivos }
+}
+
+const _vereditoOrder: Record<Veredito['tipo'], number> = { aprovado: 0, juntar: 1, negado: 2 }
+const _vereditoByIndex: Veredito['tipo'][] = ['aprovado', 'juntar', 'negado']
+const _tierToVeredito: Record<TierRisco, Veredito['tipo']> = {
+  verde: 'aprovado',
+  amarelo: 'juntar',
+  vermelho: 'negado',
+}
+
+function compoeVeredito(existente: Veredito, risco: RiscoPatrimonio): Veredito {
+  const tipoFromRisco = _tierToVeredito[risco.tier]
+  const indiceFinal = Math.max(_vereditoOrder[existente.tipo], _vereditoOrder[tipoFromRisco])
+  const tipoFinal = _vereditoByIndex[indiceFinal]
+  if (tipoFinal === existente.tipo) return existente
+  return { ...existente, tipo: tipoFinal }
+}
+
+// ===========================================================
 // SCORE DE SAÚDE FINANCEIRA (P1.5)
 // ===========================================================
 
@@ -943,6 +1079,8 @@ function calcScoreSaude(
 }
 
 export {
+  calcRiscoPatrimonio,
+  compoeVeredito,
   calcCustoComJuros,
   validarPassivoAltoValor,
   calcScoreSaude,

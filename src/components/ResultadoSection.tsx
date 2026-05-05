@@ -10,9 +10,11 @@ import {
   ScoreSaudeResult,
   NivelSaude,
   CRITERIOS,
+  RiscoPatrimonio,
 } from '../logic/index'
 import GraficoPatrimonio from './GraficoPatrimonio'
 import GraficoMeta from './GraficoMeta'
+import ChipsDeRisco, { formatChipRisco } from './ChipsDeRisco'
 
 const NIVEL_CONFIG: Record<NivelSaude, { label: string; color: string }> = {
   boa:     { label: 'Boa',    color: '#10b981' },
@@ -47,6 +49,8 @@ interface Props {
   // P1 features
   rendimentoAnual: number
   scoreSaude: ScoreSaudeResult
+  // Ciclo 0 — risco de patrimônio
+  risco: RiscoPatrimonio
   onRefazer: () => void
 }
 
@@ -294,15 +298,15 @@ function CaminhoCard({
 
 const VERDICT_MAP: Record<string, { titulo: string; sub: string }> = {
   aprovado: {
-    titulo: 'Pode comprar! 💪',
+    titulo: 'Pode comprar 💪',
     sub: 'Você seguiu as regras: tem reserva de emergência e dinheiro disponível.',
   },
   juntar: {
-    titulo: 'Pode, mas com cuidado ⚠️',
-    sub: 'É possível, mas avalie o impacto no orçamento antes de decidir.',
+    titulo: 'Ainda não ⚠️',
+    sub: 'É possível mais à frente — antes, destrave os pontos abaixo.',
   },
   negado: {
-    titulo: 'Ainda não é a hora 🚫',
+    titulo: 'Não comprar 🚫',
     sub: 'Mas com disciplina, você chega lá. Veja o plano abaixo.',
   },
 }
@@ -340,12 +344,23 @@ export default function ResultadoSection({
   parcelasExistentes,
   rendimentoAnual,
   scoreSaude,
+  risco,
   onRefazer,
 }: Props) {
   const { veredito, debug } = resultado
   const { reservaAlvo, sobraLazerMensal, disponivel, dentro1pct, parcelaValor, parcelaCabe } = debug
 
-  const veredictoUI = VERDICT_MAP[veredito.tipo] ?? { titulo: veredito.titulo, sub: veredito.subtitulo ?? '' }
+  const baseUI = VERDICT_MAP[veredito.tipo] ?? { titulo: veredito.titulo, sub: veredito.subtitulo ?? '' }
+  // Subtítulo dinâmico: se o tier rebaixado tem chip mais severo, usa o texto do chip.
+  const chipMaisSevero = (() => {
+    if (risco.motivos.length === 0) return null
+    const formatted = risco.motivos.map(formatChipRisco)
+    const ordem: Record<string, number> = { vermelho: 0, laranja: 1, amarelo: 2 }
+    return formatted.sort((a, b) => ordem[a.severidade] - ordem[b.severidade])[0]
+  })()
+  const veredictoUI = (veredito.tipo === 'juntar' || veredito.tipo === 'negado') && chipMaisSevero
+    ? { titulo: baseUI.titulo, sub: chipMaisSevero.texto }
+    : baseUI
   const icone = ICONE_MAP[veredito.tipo] ?? '💡'
   const isNegado = veredito.tipo === 'negado'
   const isJuntar = veredito.tipo === 'juntar'
@@ -373,6 +388,7 @@ export default function ResultadoSection({
         <div className="veredito-icone">{icone}</div>
         <div className="veredito-titulo">{veredictoUI.titulo}</div>
         <div className="veredito-subtitulo">{veredictoUI.sub}</div>
+        <ChipsDeRisco risco={risco} />
       </div>
 
       {/* ── Rules checklist ── */}

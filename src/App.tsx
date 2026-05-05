@@ -11,6 +11,8 @@ import {
   calcCustoComJuros,
   validarPassivoAltoValor,
   calcScoreSaude,
+  calcRiscoPatrimonio,
+  compoeVeredito,
   SimularResult,
   FluxoCaixaResult,
   StatusPatrimonioResult,
@@ -18,6 +20,7 @@ import {
   CustoFinanciamentoResult,
   ValidarPassivoAltoValorResult,
   ScoreSaudeResult,
+  RiscoPatrimonio,
 } from './logic/index'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
@@ -60,6 +63,8 @@ interface SimulacaoResultado {
   // P1 features
   rendimentoAnual: number
   scoreSaude: ScoreSaudeResult
+  // Ciclo 0
+  risco: RiscoPatrimonio
 }
 
 function loadFromStorage() {
@@ -252,8 +257,32 @@ export default function App() {
         })
       : null
 
+    const reservaAlvo = custo * reservaMeses
+    const patrimonioPosCompra = parcelas <= 1
+      ? patrimonio - itemValor
+      : patrimonio - entradaValor
+    const dtiPos = renda > 0 ? (parcelasExistentes + parcelaEfetiva) / renda : 0
+
+    const risco = calcRiscoPatrimonio({
+      patrimonio,
+      valorCompra: itemValor,
+      tipoCompra,
+      parcelasExistentes,
+      parcelaNova: parcelaEfetiva,
+      sobraLazerMensal,
+      dtiPos,
+      atrasoMetaMeses: metaResult?.atrasoMeses ?? null,
+      reservaAlvo,
+      patrimonioPosCompra,
+    })
+
+    const vereditoComposto = compoeVeredito(resultado.veredito, risco)
+    const resultadoFinal: SimularResult = vereditoComposto === resultado.veredito
+      ? resultado
+      : { ...resultado, veredito: vereditoComposto }
+
     setSimulacao({
-      resultado,
+      resultado: resultadoFinal,
       criterio: criterioAuto,
       fluxo,
       patrim,
@@ -277,6 +306,7 @@ export default function App() {
       parcelasExistentes,
       rendimentoAnual,
       scoreSaude,
+      risco,
     })
   }
 
@@ -365,6 +395,7 @@ export default function App() {
               parcelasExistentes={simulacao.parcelasExistentes}
               rendimentoAnual={simulacao.rendimentoAnual}
               scoreSaude={simulacao.scoreSaude}
+              risco={simulacao.risco}
               onRefazer={novoCalculo}
             />
           </div>
