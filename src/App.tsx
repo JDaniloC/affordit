@@ -1,33 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Envelope, Criterio, TipoCompra, Meta } from './types'
+
+const logoUrl = import.meta.env.BASE_URL + 'logo.png'
+import { AppState, Cenario, Envelope, Meta, TipoCompra } from './types'
+import { loadAppState, saveAppState } from './state/storage'
 import {
-  simularLogica,
-  calcFluxoCaixa,
-  calcStatusPatrimonio,
-  calcRoiAprovacao,
   calcLazerPct,
   selectCriterioAuto,
-  calcImpactoMetaFinanceira,
   calcCustoComJuros,
-  validarPassivoAltoValor,
   calcScoreSaude,
-  calcRiscoPatrimonio,
-  compoeVeredito,
-  SimularResult,
-  FluxoCaixaResult,
-  StatusPatrimonioResult,
-  MetaFinanceiraResult,
-  CustoFinanciamentoResult,
-  ValidarPassivoAltoValorResult,
-  ScoreSaudeResult,
-  RiscoPatrimonio,
 } from './logic/index'
-import PlanejadorView from './components/PlanejadorView'
+import { gerarId } from './utils/id'
+import { formatHash } from './hooks/useHashRoute'
+import AppShell from './components/AppShell'
 import ConfigSection from './components/ConfigSection'
 import RealidadeSection from './components/RealidadeSection'
 import SonhoSection from './components/SonhoSection'
 import EstrategiaSection from './components/EstrategiaSection'
-import ResultadoSection from './components/ResultadoSection'
 import StepperNav from './components/StepperNav'
 import StepperActions from './components/StepperActions'
 import ChartDistribuicao from './components/ChartDistribuicao'
@@ -35,146 +23,202 @@ import ChartReservaViva from './components/ChartReservaViva'
 import ChartPrazoVivo from './components/ChartPrazoVivo'
 import ResumoStep4 from './components/ResumoStep4'
 
-const STORAGE_KEY = 'affordit_state'
-
-interface SimulacaoResultado {
-  resultado: SimularResult
-  criterio: Criterio
-  fluxo: FluxoCaixaResult
-  patrim: StatusPatrimonioResult
-  roiOk: boolean
-  ferramenta: boolean
-  renda: number
-  custo: number
-  patrimonio: number
-  itemValor: number
-  itemNome: string
-  parcelas: number
-  metaValor: number
-  metaResult: MetaFinanceiraResult | null
-  // P0 features
-  tipoCompra: TipoCompra
-  taxaJuros: number
-  custoFinanciamento: CustoFinanciamentoResult | null
-  passivoResult: ValidarPassivoAltoValorResult | null
-  manutencaoMensal: number
-  entradaValor: number
-  despesaSubstituida: number
-  parcelasExistentes: number
-  // P1 features
-  rendimentoAnual: number
-  scoreSaude: ScoreSaudeResult
-  // Ciclo 0
-  risco: RiscoPatrimonio
-}
-
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
-  } catch {
-    return null
+function cenarioVazio(): Cenario {
+  const agora = Date.now()
+  return {
+    id: gerarId(),
+    nome: 'Cenário 1',
+    itemNome: '',
+    itemValor: 0,
+    tipoCompra: 'lazer',
+    parcelas: 1,
+    taxaJuros: 0,
+    manutencaoMensal: 0,
+    entradaValor: 0,
+    despesaSubstituida: 0,
+    criadoEm: agora,
+    atualizadoEm: agora,
   }
 }
 
 export default function App() {
-  const saved = loadFromStorage()
+  // Estado raiz único
+  const [state, setState] = useState<AppState>(() => {
+    const loaded = loadAppState()
+    // Auto-cria cenário rascunho apenas durante onboarding (wizard precisa de pelo menos 1)
+    if (loaded.cenarios.length === 0 && !loaded.onboardingConcluido) {
+      const c = cenarioVazio()
+      return { ...loaded, cenarios: [c], cenarioAtivoId: c.id }
+    }
+    if (loaded.cenarios.length > 0 && !loaded.cenarioAtivoId) {
+      return { ...loaded, cenarioAtivoId: loaded.cenarios[0].id }
+    }
+    return loaded
+  })
 
-  const [envelopes, setEnvelopes] = useState<Envelope[]>(saved?.envelopes ?? [])
-  const [reservaMeses, setReservaMeses] = useState<number>(saved?.reservaMeses ?? 6)
-  const [renda, setRenda] = useState<number>(saved?.renda ?? 0)
-  const [custo, setCusto] = useState<number>(saved?.custo ?? 0)
-  const [patrimonio, setPatrimonio] = useState<number>(saved?.patrimonio ?? 0)
-  const [metaValor, setMetaValor] = useState<number>(saved?.metaValor ?? 0)
-  const [itemNome, setItemNome] = useState<string>(saved?.itemNome ?? '')
-  const [itemValor, setItemValor] = useState<number>(saved?.itemValor ?? 0)
-  const [parcelas, setParcelas] = useState<number>(saved?.parcelas ?? 1)
-  // P0 / P1 state
-  const [tipoCompra, setTipoCompra] = useState<TipoCompra>(saved?.tipoCompra ?? 'lazer')
-  const [manutencaoMensal, setManutencaoMensal] = useState<number>(saved?.manutencaoMensal ?? 0)
-  const [entradaValor, setEntradaValor] = useState<number>(saved?.entradaValor ?? 0)
-  const [despesaSubstituida, setDespesaSubstituida] = useState<number>(saved?.despesaSubstituida ?? 0)
-  const [taxaJuros, setTaxaJuros] = useState<number>(saved?.taxaJuros ?? 0)
-  const [parcelasExistentes, setParcelasExistentes] = useState<number>(saved?.parcelasExistentes ?? 0)
-  const [rendimentoAnual, setRendimentoAnual] = useState<number>(saved?.rendimentoAnual ?? 0)
-  const [metas, setMetas] = useState<Meta[]>(saved?.metas ?? [])
-  const [view, setView] = useState<'simulador' | 'planejador'>('simulador')
-  // Derived: ferramenta boolean from tipoCompra
-  const ferramenta = tipoCompra === 'ferramenta'
-  const [simulacao, setSimulacao] = useState<SimulacaoResultado | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-
-  // Stepper state
-  const [step, setStep] = useState<number>(1) // 1–4 = form steps, 5 = result
+  const [step, setStep] = useState<number>(1)
   const [direction, setDirection] = useState<'forward' | 'back'>('forward')
 
-  // Persist state on every change
-  useEffect(() => {
-    const data = {
-      envelopes,
-      reservaMeses,
-      renda,
-      custo,
-      patrimonio,
-      metaValor,
-      itemNome,
-      itemValor,
-      parcelas,
-      tipoCompra,
-      manutencaoMensal,
-      entradaValor,
-      despesaSubstituida,
-      taxaJuros,
-      parcelasExistentes,
-      rendimentoAnual,
-      metas,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }, [envelopes, reservaMeses, renda, custo, patrimonio, metaValor, itemNome, itemValor, parcelas, tipoCompra, manutencaoMensal, entradaValor, despesaSubstituida, taxaJuros, parcelasExistentes, rendimentoAnual, metas])
+  // Cenário ativo (pode ser null quando cenarios.length === 0 em shell mode)
+  const cenario = useMemo<Cenario | null>(() => {
+    if (state.cenarios.length === 0) return null
+    const c = state.cenarios.find(c => c.id === state.cenarioAtivoId)
+    return c ?? state.cenarios[0]
+  }, [state.cenarios, state.cenarioAtivoId])
 
-  // Auto-selected strategy: 1% rule → patrimônio, otherwise → fluxo
+  // Persistência
+  useEffect(() => {
+    saveAppState(state)
+  }, [state])
+
+  // Reconcilia cenarioAtivoId se o cenário ativo foi removido
+  useEffect(() => {
+    if (state.cenarios.length === 0) return
+    const found = state.cenarios.find(c => c.id === state.cenarioAtivoId)
+    if (!found) {
+      setState(s => ({ ...s, cenarioAtivoId: s.cenarios[0].id }))
+    }
+  }, [state.cenarios, state.cenarioAtivoId])
+
+  // ========== Aliases ==========
+  const renda = state.perfil.renda
+  const custo = state.perfil.custo
+  const patrimonio = state.perfil.patrimonio
+  const reservaMeses = state.perfil.reservaMeses
+  const envelopes = state.perfil.envelopes
+  const parcelasExistentes = state.perfil.parcelasExistentes
+  const rendimentoAnual = state.perfil.rendimentoAnual
+  const metaValor = state.perfil.metaValor
+  const metas = state.metas
+  const itemNome = cenario?.itemNome ?? ''
+  const itemValor = cenario?.itemValor ?? 0
+  const tipoCompra = cenario?.tipoCompra ?? 'lazer'
+  const parcelas = cenario?.parcelas ?? 1
+  const taxaJuros = cenario?.taxaJuros ?? 0
+  const manutencaoMensal = cenario?.manutencaoMensal ?? 0
+  const entradaValor = cenario?.entradaValor ?? 0
+  const despesaSubstituida = cenario?.despesaSubstituida ?? 0
+
+  // ========== Setters ==========
+  const setPerfil = (patch: Partial<AppState['perfil']>) =>
+    setState(s => ({ ...s, perfil: { ...s.perfil, ...patch } }))
+  const setCenario = (patch: Partial<Cenario>) =>
+    setState(s => ({
+      ...s,
+      cenarios: s.cenarios.map(c =>
+        c.id === s.cenarioAtivoId ? { ...c, ...patch, atualizadoEm: Date.now() } : c,
+      ),
+    }))
+  const setMetas = (next: Meta[]) => setState(s => ({ ...s, metas: next }))
+
+  const setRenda = (v: number) => setPerfil({ renda: v })
+  const setCusto = (v: number) => setPerfil({ custo: v })
+  const setPatrimonio = (v: number) => setPerfil({ patrimonio: v })
+  const setReservaMeses = (v: number) => setPerfil({ reservaMeses: v })
+  // Envelopes setter accepts both forms because ConfigSection uses
+  // React.Dispatch<SetStateAction<Envelope[]>> (functional updates).
+  // All other perfil setters use simple value-replace via setPerfil.
+  const setEnvelopes = (v: Envelope[] | ((prev: Envelope[]) => Envelope[])) =>
+    setState(s => ({
+      ...s,
+      perfil: {
+        ...s.perfil,
+        envelopes: typeof v === 'function' ? v(s.perfil.envelopes) : v,
+      },
+    }))
+  const setParcelasExistentes = (v: number) => setPerfil({ parcelasExistentes: v })
+  const setRendimentoAnual = (v: number) => setPerfil({ rendimentoAnual: v })
+  const setMetaValor = (v: number) => setPerfil({ metaValor: v })
+  const setItemNome = (v: string) => setCenario({ itemNome: v })
+  const setItemValor = (v: number) => setCenario({ itemValor: v })
+  const setTipoCompra = (v: TipoCompra) => setCenario({ tipoCompra: v })
+  const setParcelas = (v: number) => setCenario({ parcelas: v })
+  const setTaxaJuros = (v: number) => setCenario({ taxaJuros: v })
+  const setManutencaoMensal = (v: number) => setCenario({ manutencaoMensal: v })
+  const setEntradaValor = (v: number) => setCenario({ entradaValor: v })
+  const setDespesaSubstituida = (v: number) => setCenario({ despesaSubstituida: v })
+
+  const setCenarioAtivoId = (id: string) =>
+    setState(s => ({ ...s, cenarioAtivoId: id }))
+
+  const criarCenarioVazio = () => {
+    const c = cenarioVazio()
+    setState(s => {
+      const numero = s.cenarios.length + 1
+      const named: Cenario = { ...c, nome: `Cenário ${numero}` }
+      return {
+        ...s,
+        cenarios: [...s.cenarios, named],
+        cenarioAtivoId: named.id,
+      }
+    })
+    window.location.hash = formatHash('cenarios', { id: c.id })
+  }
+
+  const duplicarCenarioAtivo = () => {
+    if (!state.cenarioAtivoId) return
+    const ativo = state.cenarios.find(c => c.id === state.cenarioAtivoId)
+    if (!ativo) return
+    const agora = Date.now()
+    const novo: Cenario = {
+      ...ativo,
+      id: gerarId(),
+      nome: `${ativo.nome} (cópia)`,
+      criadoEm: agora,
+      atualizadoEm: agora,
+    }
+    setState(s => ({
+      ...s,
+      cenarios: [...s.cenarios, novo],
+      cenarioAtivoId: novo.id,
+    }))
+    window.location.hash = formatHash('cenarios', { id: novo.id })
+  }
+
+  const excluirCenario = (id: string) => {
+    setState(s => {
+      const cenarios = s.cenarios.filter(c => c.id !== id)
+      const cenarioAtivoId =
+        s.cenarioAtivoId === id
+          ? (cenarios[0]?.id ?? null)
+          : s.cenarioAtivoId
+      return { ...s, cenarios, cenarioAtivoId }
+    })
+  }
+
   const criterioAuto = useMemo(
     () => selectCriterioAuto(patrimonio, itemValor),
     [patrimonio, itemValor],
   )
 
-  // Derived values for charts
   const sobraLazerMensal = useMemo(
     () => Math.max(0, (calcLazerPct(renda, custo, envelopes) / 100) * renda - parcelasExistentes),
     [renda, custo, envelopes, parcelasExistentes],
   )
 
-  // Sum of envelope amounts in R$ (used for validarPassivoAltoValor)
-  const baldeInvestimentoR = useMemo(
-    () => envelopes.reduce((sum, e) => sum + (e.pct / 100) * renda, 0),
-    [envelopes, renda],
-  )
-
-  // Real cost of financing with interest (P0.2)
   const custoFinanciamentoLive = useMemo(
-    () => taxaJuros > 0 && parcelas > 1
-      ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
-      : null,
+    () =>
+      taxaJuros > 0 && parcelas > 1
+        ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
+        : null,
     [itemValor, parcelas, taxaJuros],
   )
 
-  // Parcela efetiva (com ou sem juros)
   const parcelaEfetiva = useMemo(() => {
     if (custoFinanciamentoLive) return custoFinanciamentoLive.parcelaValor
     return parcelas > 1 ? itemValor / parcelas : itemValor
   }, [custoFinanciamentoLive, itemValor, parcelas])
 
-  // P1.4 — converte taxa anual (a.a.) para mensal efetiva pelo regime composto
-  // Fórmula: i_mensal = (1 + i_anual)^(1/12) - 1
   const rendimentoMensalEfetivo = useMemo(
-    () => rendimentoAnual > 0 ? (Math.pow(1 + rendimentoAnual / 100, 1 / 12) - 1) * 100 : 0,
+    () =>
+      rendimentoAnual > 0 ? (Math.pow(1 + rendimentoAnual / 100, 1 / 12) - 1) * 100 : 0,
     [rendimentoAnual],
   )
 
-  // P1.5 — score de saúde financeira (live, atualiza enquanto o usuário preenche)
   const scoreSaude = useMemo(
-    () => calcScoreSaude(renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes),
+    () =>
+      calcScoreSaude(renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes),
     [renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes],
   )
 
@@ -188,99 +232,8 @@ export default function App() {
       return
     }
     setErro(null)
-
-    const resultado = simularLogica({
-      renda,
-      custo,
-      patrimonio,
-      reservaMeses,
-      itemValor,
-      itemNome: itemNome.trim() || 'Item',
-      ferramenta,
-      envelopes,
-      parcelas,
-      parcelasExistentes,
-    })
-
-    const fluxo = calcFluxoCaixa(itemValor, resultado.debug.sobraLazerMensal, parcelas)
-    const patrim = calcStatusPatrimonio(patrimonio, custo, itemValor)
-    const roiOk = calcRoiAprovacao(patrim.statusAtual, ferramenta)
-
-    const metaResult = metaValor > 0
-      ? calcImpactoMetaFinanceira(patrimonio, sobraLazerMensal, itemValor, parcelas, metaValor, rendimentoMensalEfetivo)
-      : null
-
-    // P0.2 — custo com juros
-    const custoFinanciamento = taxaJuros > 0 && parcelas > 1
-      ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
-      : null
-
-    // P0.1 — validação passivo de alto valor
-    const passivoResult = tipoCompra === 'passivoAltoValor'
-      ? validarPassivoAltoValor({
-          patrimonio,
-          renda,
-          custo,
-          entrada: entradaValor,
-          parcela: parcelaEfetiva,
-          manutencao: manutencaoMensal,
-          despesaSubstituida,
-          baldeLazer: sobraLazerMensal,
-          baldeInvestimento: baldeInvestimentoR,
-        })
-      : null
-
-    const reservaAlvo = custo * reservaMeses
-    const patrimonioPosCompra = parcelas <= 1
-      ? patrimonio - itemValor
-      : patrimonio - entradaValor
-    const dtiPos = renda > 0 ? (parcelasExistentes + parcelaEfetiva) / renda : 0
-
-    const risco = calcRiscoPatrimonio({
-      patrimonio,
-      valorCompra: itemValor,
-      tipoCompra,
-      parcelasExistentes,
-      parcelaNova: parcelaEfetiva,
-      sobraLazerMensal,
-      dtiPos,
-      atrasoMetaMeses: metaResult?.atrasoMeses ?? null,
-      reservaAlvo,
-      patrimonioPosCompra,
-    })
-
-    const vereditoComposto = compoeVeredito(resultado.veredito, risco)
-    const resultadoFinal: SimularResult = vereditoComposto === resultado.veredito
-      ? resultado
-      : { ...resultado, veredito: vereditoComposto }
-
-    setSimulacao({
-      resultado: resultadoFinal,
-      criterio: criterioAuto,
-      fluxo,
-      patrim,
-      roiOk,
-      ferramenta,
-      renda,
-      custo,
-      patrimonio,
-      itemValor,
-      itemNome: itemNome.trim() || 'Item',
-      parcelas,
-      metaValor,
-      metaResult,
-      tipoCompra,
-      taxaJuros,
-      custoFinanciamento,
-      passivoResult,
-      manutencaoMensal,
-      entradaValor,
-      despesaSubstituida,
-      parcelasExistentes,
-      rendimentoAnual,
-      scoreSaude,
-      risco,
-    })
+    setState(s => ({ ...s, onboardingConcluido: true }))
+    window.location.hash = formatHash('cenarios')
   }
 
   function goNext() {
@@ -294,7 +247,6 @@ export default function App() {
       return
     }
     if (step === 4) {
-      // validate then simulate
       if (renda <= 0) {
         setErro('Informe sua renda líquida mensal.')
         return
@@ -305,121 +257,61 @@ export default function App() {
       }
       simular()
       setDirection('forward')
-      setStep(5)
+      // DO NOT setStep(5) — shell takes over after onboardingConcluido=true
       return
     }
     setDirection('forward')
-    setStep((s) => s + 1)
+    setStep(s => s + 1)
   }
 
   function goBack() {
     setErro(null)
-    if (step === 5) {
-      setDirection('back')
-      setStep(4)
-      return
-    }
     setDirection('back')
-    setStep((s) => Math.max(1, s - 1))
+    setStep(s => Math.max(1, s - 1))
   }
 
-  function novoCalculo() {
-    setSimulacao(null)
-    setErro(null)
-    setDirection('back')
+  function refazerSetup() {
+    setState(s => ({ ...s, perfil: { ...s.perfil, renda: 0 }, onboardingConcluido: false }))
     setStep(1)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.location.hash = ''
   }
 
-  if (view === 'planejador') {
+  // ----- SHELL MODE -----
+  if (state.onboardingConcluido) {
     return (
-      <PlanejadorView
-        metas={metas}
-        onMetasChange={setMetas}
+      <AppShell
+        state={state}
+        cenario={cenario}
+        setPerfil={setPerfil}
+        setCenario={setCenario}
+        setMetas={setMetas}
+        setEnvelopes={setEnvelopes}
+        scoreSaude={scoreSaude}
         sobraLazerMensal={sobraLazerMensal}
-        patrimonio={patrimonio}
-        reservaAlvo={custo * reservaMeses}
-        metaValor={metaValor}
         rendimentoMensalEfetivo={rendimentoMensalEfetivo}
-        onVoltar={() => setView('simulador')}
-        onSimularMeta={(m) => {
-          setItemNome(m.nome)
-          setItemValor(m.valor)
-          setView('simulador')
-          setStep(3)
+        setCenarioAtivoId={setCenarioAtivoId}
+        criarCenarioVazio={criarCenarioVazio}
+        duplicarCenarioAtivo={duplicarCenarioAtivo}
+        excluirCenario={excluirCenario}
+        onAdicionarItemAFila={() => {
+          if (!cenario) return
+          const id = state.metas.reduce((m, x) => Math.max(m, x.id), 0) + 1
+          setMetas([...state.metas, { id, nome: cenario.itemNome, valor: cenario.itemValor }])
         }}
+        onAbrirMetas={() => {
+          window.location.hash = formatHash('metas')
+        }}
+        onSimularMeta={m => {
+          if (!cenario) return
+          setCenario({ itemNome: m.nome, itemValor: m.valor, nome: m.nome })
+          window.location.hash = formatHash('cenarios', { id: cenario.id })
+        }}
+        onRefazerSetup={refazerSetup}
       />
     )
   }
 
-  // Result page
-  if (step === 5 && simulacao) {
-    return (
-      <div id="app">
-        <header className="result-header">
-          <button className="btn-secondary result-back-btn" onClick={goBack}>
-            ← Voltar
-          </button>
-          <h1>Resultado</h1>
-          <button
-            type="button"
-            className="btn-header-planejador"
-            onClick={() => setView('planejador')}
-            aria-label="Abrir planejador de metas"
-          >
-            📋 Minhas metas
-            {metas.length > 0 && <span className="badge-metas">{metas.length}</span>}
-          </button>
-        </header>
-        <main>
-          <div className="col-form" style={{ maxWidth: 660, margin: '0 auto' }}>
-            <ResultadoSection
-              resultado={simulacao.resultado}
-              criterio={simulacao.criterio}
-              fluxo={simulacao.fluxo}
-              patrim={simulacao.patrim}
-              roiOk={simulacao.roiOk}
-              ferramenta={simulacao.ferramenta}
-              renda={simulacao.renda}
-              custo={simulacao.custo}
-              patrimonio={simulacao.patrimonio}
-              itemValor={simulacao.itemValor}
-              itemNome={simulacao.itemNome}
-              parcelas={simulacao.parcelas}
-              metaValor={simulacao.metaValor}
-              metaResult={simulacao.metaResult}
-              tipoCompra={simulacao.tipoCompra}
-              taxaJuros={simulacao.taxaJuros}
-              custoFinanciamento={simulacao.custoFinanciamento}
-              passivoResult={simulacao.passivoResult}
-              manutencaoMensal={simulacao.manutencaoMensal}
-              entradaValor={simulacao.entradaValor}
-              despesaSubstituida={simulacao.despesaSubstituida}
-              parcelasExistentes={simulacao.parcelasExistentes}
-              rendimentoAnual={simulacao.rendimentoAnual}
-              scoreSaude={simulacao.scoreSaude}
-              risco={simulacao.risco}
-              metas={metas}
-              onAdicionarItemAFila={() => {
-                const id = metas.reduce((m, x) => Math.max(m, x.id), 0) + 1
-                setMetas([
-                  ...metas,
-                  { id, nome: simulacao.itemNome, valor: simulacao.itemValor },
-                ])
-              }}
-              onAbrirPlanejador={() => setView('planejador')}
-              onRefazer={novoCalculo}
-            />
-          </div>
-        </main>
-        <footer>
-          <p>Seus dados são salvos localmente no seu navegador. Nenhuma informação é enviada.</p>
-        </footer>
-      </div>
-    )
-  }
-
-  // Chart for current step
+  // ----- WIZARD MODE -----
   const chartPanel = (
     <div className="step-chart-panel">
       {step === 1 && (
@@ -460,15 +352,7 @@ export default function App() {
   return (
     <div id="app">
       <header>
-        <button
-          type="button"
-          className="btn-header-planejador"
-          onClick={() => setView('planejador')}
-          aria-label="Abrir planejador de metas"
-        >
-          📋 Minhas metas
-          {metas.length > 0 && <span className="badge-metas">{metas.length}</span>}
-        </button>
+        <img src={logoUrl} alt="AffordIT" className="wizard-logo" />
         <h1>Posso Comprar?</h1>
         <p className="subtitle">
           Simule a viabilidade de uma compra com base nos seus envelopes financeiros.
@@ -479,10 +363,7 @@ export default function App() {
 
       <main>
         <div className={`step-layout step-slide-${direction}`} key={step}>
-          {/* Chart panel — order -1 on mobile (top), right on desktop */}
           {chartPanel}
-
-          {/* Form panel */}
           <div className="step-form-panel">
             {step === 1 && (
               <ConfigSection
@@ -496,7 +377,6 @@ export default function App() {
                 onParcelasExistentesChange={setParcelasExistentes}
               />
             )}
-
             {step === 2 && (
               <RealidadeSection
                 patrimonio={patrimonio}
@@ -510,7 +390,6 @@ export default function App() {
                 scoreSaude={scoreSaude}
               />
             )}
-
             {step === 3 && (
               <SonhoSection
                 itemNome={itemNome}
@@ -527,7 +406,6 @@ export default function App() {
                 onDespesaSubstituida={setDespesaSubstituida}
               />
             )}
-
             {step === 4 && (
               <EstrategiaSection
                 criterioAuto={criterioAuto}
@@ -540,7 +418,6 @@ export default function App() {
                 custoFinanciamento={custoFinanciamentoLive}
               />
             )}
-
             <StepperActions step={step} onBack={goBack} onNext={goNext} erro={erro} />
           </div>
         </div>

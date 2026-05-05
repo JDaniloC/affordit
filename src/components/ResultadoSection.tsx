@@ -57,9 +57,9 @@ interface Props {
   // Ciclo 0 — risco de patrimônio
   risco: RiscoPatrimonio
   metas: Meta[]
-  onAdicionarItemAFila: () => void
-  onAbrirPlanejador: () => void
-  onRefazer: () => void
+  onAdicionarItemAFila?: () => void
+  onAbrirPlanejador?: () => void
+  onRefazer?: () => void
 }
 
 const fmt = (valor: number) =>
@@ -473,14 +473,16 @@ export default function ResultadoSection({
           )}
 
           <div className="card-fila-acoes">
-            {!itemJaNaFila && (
+            {!itemJaNaFila && onAdicionarItemAFila && (
               <button type="button" className="btn-secondary" onClick={onAdicionarItemAFila}>
                 + Adicionar à fila
               </button>
             )}
-            <button type="button" className="btn-secondary" onClick={onAbrirPlanejador}>
-              📋 Ver minhas metas
-            </button>
+            {onAbrirPlanejador && (
+              <button type="button" className="btn-secondary" onClick={onAbrirPlanejador}>
+                📋 Ver minhas metas
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -650,13 +652,15 @@ export default function ResultadoSection({
         )
       })()}
 
-      <button
-        className="btn-secondary"
-        onClick={onRefazer}
-        style={{ marginTop: 8, width: '100%' }}
-      >
-        Refazer Simulação
-      </button>
+      {onRefazer && (
+        <button
+          className="btn-secondary"
+          onClick={onRefazer}
+          style={{ marginTop: 8, width: '100%' }}
+        >
+          Refazer Simulação
+        </button>
+      )}
     </section>
   )
 }

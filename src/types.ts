@@ -8,7 +8,17 @@ export type Criterio = 'fluxo' | 'patrimonio' | 'roi'
 
 export type TipoCompra = 'lazer' | 'ferramenta' | 'passivoAltoValor'
 
-export interface AppState {
+// Meta do planejador (Ciclo F) — NÃO MUDAR
+export interface Meta {
+  id: number
+  nome: string
+  valor: number
+}
+
+// ============================================================
+// V1 — esquema legado, usado apenas pela migração
+// ============================================================
+export interface AppStateV1 {
   envelopes: Envelope[]
   reservaMeses: number
   renda: number
@@ -20,22 +30,69 @@ export interface AppState {
   ferramenta: boolean
   criterio: Criterio
   parcelas: number
-  // P0.1 — tipo de compra
   tipoCompra: TipoCompra
-  manutencaoMensal: number    // custo mensal de manutenção (passivo)
-  entradaValor: number        // entrada (passivo)
-  despesaSubstituida: number  // despesa substituída, ex: aluguel atual (passivo)
-  // P0.2 — juros do financiamento
-  taxaJuros: number           // taxa de juros mensal em % (0 = sem juros)
-  // P0.3 — parcelas existentes
-  parcelasExistentes: number  // parcelas mensais já comprometidas no orçamento
-  // P1.4 — rendimento da reserva / juros compostos
-  rendimentoAnual: number     // taxa de rendimento anual em % a.a. (0 = sem rendimento)
+  manutencaoMensal: number
+  entradaValor: number
+  despesaSubstituida: number
+  taxaJuros: number
+  parcelasExistentes: number
+  rendimentoAnual: number
   metas: Meta[]
 }
 
-export interface Meta {
-  id: number
+// ============================================================
+// V2 — esquema novo
+// ============================================================
+export interface PerfilFinanceiro {
+  renda: number
+  custo: number
+  parcelasExistentes: number
+  envelopes: Envelope[]
+  patrimonio: number
+  reservaMeses: number
+  rendimentoAnual: number
+  metaValor: number
+}
+
+export interface Cenario {
+  id: string
   nome: string
-  valor: number
+  itemNome: string
+  itemValor: number
+  tipoCompra: TipoCompra
+  parcelas: number
+  taxaJuros: number
+  manutencaoMensal: number
+  entradaValor: number
+  despesaSubstituida: number
+  criadoEm: number
+  atualizadoEm: number
+}
+
+export interface AppState {
+  perfil: PerfilFinanceiro
+  cenarios: Cenario[]
+  metas: Meta[]
+  cenarioAtivoId: string | null
+  onboardingConcluido: boolean
+}
+
+// Helpers de fábrica
+export const PERFIL_VAZIO: PerfilFinanceiro = {
+  renda: 0,
+  custo: 0,
+  parcelasExistentes: 0,
+  envelopes: [],
+  patrimonio: 0,
+  reservaMeses: 6,
+  rendimentoAnual: 0,
+  metaValor: 0,
+}
+
+export const APP_STATE_VAZIO: AppState = {
+  perfil: PERFIL_VAZIO,
+  cenarios: [],
+  metas: [],
+  cenarioAtivoId: null,
+  onboardingConcluido: false,
 }
