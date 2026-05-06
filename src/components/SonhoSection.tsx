@@ -16,6 +16,8 @@ interface Props {
   onEntradaValorChange: (v: number) => void
   despesaSubstituida: number
   onDespesaSubstituida: (v: number) => void
+  inflacaoAnual?: number
+  onInflacaoAnualChange?: (v: number) => void
 }
 
 const TIPOS: { value: TipoCompra; label: string; icon: string; hint: string }[] = [
@@ -52,6 +54,8 @@ export default function SonhoSection({
   onEntradaValorChange,
   despesaSubstituida,
   onDespesaSubstituida,
+  inflacaoAnual,
+  onInflacaoAnualChange,
 }: Props) {
   const isPassivo = tipoCompra === 'passivoAltoValor'
 
@@ -77,6 +81,25 @@ export default function SonhoSection({
           <NumericInput id="item-valor" value={itemValor} onChange={onItemValorChange} placeholder="0,00" />
         </div>
       </div>
+
+      {onInflacaoAnualChange && (
+        <div className="field">
+          <label htmlFor="inflacao-anual">Inflação anual do item (opcional)</label>
+          <div className="input-group">
+            <NumericInput
+              id="inflacao-anual"
+              value={inflacaoAnual ?? 0}
+              onChange={onInflacaoAnualChange}
+              placeholder="0,0"
+            />
+            <span className="unit">% a.a.</span>
+          </div>
+          <p className="hint">
+            Ex: carros novos sobem ~5% a.a., eletrônicos podem ficar mais baratos. Quando preenchido,
+            o resultado mostra quanto o item custará no momento em que você terá o dinheiro.
+          </p>
+        </div>
+      )}
 
       <div className="field">
         <label>Tipo de compra</label>

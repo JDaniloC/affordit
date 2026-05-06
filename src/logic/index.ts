@@ -1420,6 +1420,29 @@ function calcScoreSaude(
   return { nivel, pontuacao, fatores }
 }
 
+// ===========================================================
+// P2.8 — INFLAÇÃO DO ITEM
+// ===========================================================
+
+/**
+ * Valor futuro do item após `meses` de inflação a `taxaAnual` % a.a.
+ * Usa regime de juros compostos: VF = valor * (1 + taxaAnual/100)^(meses/12).
+ *
+ * Exemplos:
+ *   calcValorFuturoItem(1000, 6, 12) → 1060 (1000 + 6% em 1 ano)
+ *   calcValorFuturoItem(1000, 6, 24) → 1123.6 (compostos em 2 anos)
+ *   calcValorFuturoItem(1000, 0, 24) → 1000 (sem inflação)
+ *   calcValorFuturoItem(1000, 6, 0) → 1000 (zero meses)
+ */
+function calcValorFuturoItem(
+  valor: number,
+  taxaAnual: number,
+  meses: number,
+): number {
+  if (taxaAnual <= 0 || meses <= 0) return valor
+  return valor * Math.pow(1 + taxaAnual / 100, meses / 12)
+}
+
 export {
   calcCronogramaMetas,
   calcMesItemAposFila,
@@ -1466,4 +1489,5 @@ export {
   calcMesesParaMeta,
   calcMesQueAtingeMeta,
   calcAtrasoCompra,
+  calcValorFuturoItem,
 }

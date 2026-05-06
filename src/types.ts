@@ -74,6 +74,13 @@ export interface Cenario {
   despesaSubstituida: number
   criadoEm: number
   atualizadoEm: number
+  /**
+   * P2.8 — Taxa de inflação anual do item (% a.a.).
+   * Quando > 0, o resultado mostra quanto o item custará no momento
+   * em que o usuário terá o dinheiro para comprá-lo à vista.
+   * Default 0 (sem inflação aplicada).
+   */
+  inflacaoAnual: number
 }
 
 export interface AppState {

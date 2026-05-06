@@ -16,6 +16,7 @@ const cenarioBase: Cenario = {
   despesaSubstituida: 0,
   criadoEm: 0,
   atualizadoEm: 0,
+  inflacaoAnual: 0,
 }
 
 const stateBase: AppState = {

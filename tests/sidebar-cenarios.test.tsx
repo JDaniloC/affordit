@@ -10,6 +10,7 @@ const baseCenario: Cenario = {
   tipoCompra: 'lazer', parcelas: 1, taxaJuros: 0,
   manutencaoMensal: 0, entradaValor: 0, despesaSubstituida: 0,
   criadoEm: 1, atualizadoEm: 1,
+  inflacaoAnual: 0,
 }
 
 const propsBase = {

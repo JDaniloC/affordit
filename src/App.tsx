@@ -38,6 +38,7 @@ function cenarioVazio(): Cenario {
     despesaSubstituida: 0,
     criadoEm: agora,
     atualizadoEm: agora,
+    inflacaoAnual: 0,
   }
 }
 

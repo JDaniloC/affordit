@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Cenario, AppState, TipoCompra, Meta } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
-import { calcRoiAprovacao, selectCriterioAuto, calcCustoComJuros } from '../logic/index'
+import { calcRoiAprovacao, selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem } from '../logic/index'
 import SonhoSection from '../components/SonhoSection'
 import EstrategiaSection from '../components/EstrategiaSection'
 import ResultadoSection from '../components/ResultadoSection'
@@ -12,6 +12,46 @@ const CENARIO_STEP_LABELS = ['Item', 'Estratégia', 'Resultado']
 
 const fmtBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
+interface InflacaoCardProps {
+  itemValor: number
+  itemNome: string
+  inflacaoAnual: number
+  mesesParaComprar: number | null
+  parcelas: number
+}
+
+function InflacaoCard({ itemValor, itemNome, inflacaoAnual, mesesParaComprar, parcelas }: InflacaoCardProps) {
+  if (inflacaoAnual <= 0) return null
+  // Faz mais sentido para compra à vista (parcelas <= 1) com prazo de poupança;
+  // para parcelado, o "valor futuro" é menos relevante.
+  if (parcelas > 1) return null
+  if (mesesParaComprar === null || mesesParaComprar <= 0) return null
+
+  const valorFuturo = calcValorFuturoItem(itemValor, inflacaoAnual, mesesParaComprar)
+  const diferenca = valorFuturo - itemValor
+  if (diferenca < 1) return null // diferença insignificante
+
+  const fmtBR = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
+  return (
+    <div className="banner-aviso" role="status" style={{
+      background: 'rgba(245, 158, 11, 0.08)',
+      borderColor: 'rgba(245, 158, 11, 0.3)',
+      color: 'var(--warning)',
+    }}>
+      <strong>📈 {itemNome} pode custar mais quando você tiver o dinheiro</strong>
+      <p style={{ marginTop: 6, color: 'var(--text)' }}>
+        Em <strong>{mesesParaComprar} {mesesParaComprar === 1 ? 'mês' : 'meses'}</strong>, com
+        inflação de <strong>{inflacaoAnual.toFixed(1)}% a.a.</strong>, o item custará cerca de{' '}
+        <strong>{fmtBR(valorFuturo)}</strong> — {fmtBR(diferenca)} a mais que os {fmtBR(itemValor)} de
+        hoje. Adiar sem disciplina pode custar mais do que comprar agora; com disciplina,
+        ainda compensa esperar.
+      </p>
+    </div>
+  )
+}
 
 interface AvisosEstrategiaProps {
   parcelaEfetiva: number
@@ -163,6 +203,8 @@ export default function CenariosPage(props: Props) {
             onEntradaValorChange={v => props.onCenarioChange({ entradaValor: v })}
             despesaSubstituida={cenario.despesaSubstituida}
             onDespesaSubstituida={v => props.onCenarioChange({ despesaSubstituida: v })}
+            inflacaoAnual={cenario.inflacaoAnual}
+            onInflacaoAnualChange={v => props.onCenarioChange({ inflacaoAnual: v })}
           />
         )}
 
@@ -189,6 +231,14 @@ export default function CenariosPage(props: Props) {
 
         {cenarioStep === 3 && (
           cenario.itemValor > 0 && perfil.renda > 0 ? (
+            <>
+            <InflacaoCard
+              itemValor={cenario.itemValor}
+              itemNome={cenario.itemNome.trim() || 'Item'}
+              inflacaoAnual={cenario.inflacaoAnual}
+              mesesParaComprar={r.fluxo.delay}
+              parcelas={cenario.parcelas}
+            />
             <ResultadoSection
               resultado={r.veredito}
               criterio={criterio}
@@ -219,6 +269,7 @@ export default function CenariosPage(props: Props) {
               onAdicionarItemAFila={props.onAdicionarItemAFila}
               onAbrirPlanejador={props.onAbrirPlanejador}
             />
+            </>
           ) : (
             <div className="resultado-placeholder">
               <p>Preencha <strong>renda</strong> no <em>Perfil</em> e o <strong>valor do item</strong> para ver o resultado em tempo real.</p>

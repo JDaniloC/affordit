@@ -17,6 +17,7 @@ const cenA: Cenario = {
   tipoCompra: 'lazer', parcelas: 1, taxaJuros: 0,
   manutencaoMensal: 0, entradaValor: 0, despesaSubstituida: 0,
   criadoEm: 1, atualizadoEm: 1,
+  inflacaoAnual: 0,
 }
 const cenB: Cenario = { ...cenA, id: 'b', nome: 'Bbb', itemNome: 'Item B', itemValor: 5000, parcelas: 12, taxaJuros: 1.5 }
 const cenC: Cenario = { ...cenA, id: 'c', nome: 'Ccc', itemNome: 'Item C', itemValor: 50000 } // muito caro → veredito provavelmente diferente
