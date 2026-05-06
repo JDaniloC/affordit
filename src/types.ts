@@ -81,6 +81,14 @@ export interface Cenario {
    * Default 0 (sem inflação aplicada).
    */
   inflacaoAnual: number
+  /**
+   * Taxa de depreciação anual do item (% a.a.).
+   * Quando > 0, o resultado mostra quanto o item valerá após a compra
+   * em horizontes típicos (1 / 3 / 5 anos). Útil para carros, eletrônicos,
+   * gadgets e outros bens não-imóveis que perdem valor com o tempo.
+   * Default 0 (sem depreciação aplicada).
+   */
+  taxaDepreciacaoAnual: number
 }
 
 export interface AppState {

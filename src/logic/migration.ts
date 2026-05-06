@@ -73,6 +73,7 @@ function migrarCenarios(raw: unknown): Cenario[] {
         criadoEm: num(c, 'criadoEm', agora),
         atualizadoEm: num(c, 'atualizadoEm', agora),
         inflacaoAnual: num(c, 'inflacaoAnual', 0),
+        taxaDepreciacaoAnual: num(c, 'taxaDepreciacaoAnual', 0),
       }
     })
 }
@@ -148,6 +149,7 @@ export function migrarV1ParaV2(raw: unknown): AppState {
         criadoEm: agora,
         atualizadoEm: agora,
         inflacaoAnual: 0,
+        taxaDepreciacaoAnual: 0,
       })
       cenarioAtivoId = id
     }

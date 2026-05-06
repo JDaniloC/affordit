@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Cenario, AppState, TipoCompra, Meta } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
-import { calcRoiAprovacao, selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem } from '../logic/index'
+import { calcRoiAprovacao, selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem, calcValorDepreciado } from '../logic/index'
 import SonhoSection from '../components/SonhoSection'
 import EstrategiaSection from '../components/EstrategiaSection'
 import ResultadoSection from '../components/ResultadoSection'
@@ -19,6 +19,47 @@ interface InflacaoCardProps {
   inflacaoAnual: number
   mesesParaComprar: number | null
   parcelas: number
+}
+
+interface DepreciacaoCardProps {
+  itemValor: number
+  itemNome: string
+  taxaDepreciacaoAnual: number
+}
+
+function DepreciacaoCard({ itemValor, itemNome, taxaDepreciacaoAnual }: DepreciacaoCardProps) {
+  if (taxaDepreciacaoAnual <= 0 || itemValor <= 0) return null
+
+  const valor1a = calcValorDepreciado(itemValor, taxaDepreciacaoAnual, 12)
+  const valor3a = calcValorDepreciado(itemValor, taxaDepreciacaoAnual, 36)
+  const valor5a = calcValorDepreciado(itemValor, taxaDepreciacaoAnual, 60)
+  const perdaTotal5a = itemValor - valor5a
+  const perdaPct5a = (perdaTotal5a / itemValor) * 100
+
+  const fmtBR = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
+  return (
+    <div className="banner-aviso" role="status" style={{
+      background: 'rgba(239, 68, 68, 0.06)',
+      borderColor: 'rgba(239, 68, 68, 0.25)',
+      color: 'var(--danger)',
+    }}>
+      <strong>📉 {itemNome} perde valor com o tempo</strong>
+      <p style={{ marginTop: 6, color: 'var(--text)' }}>
+        A {taxaDepreciacaoAnual.toFixed(1)}% a.a. de depreciação:
+      </p>
+      <ul style={{ marginTop: 4, marginBottom: 4, paddingLeft: 20, color: 'var(--text)' }}>
+        <li>em <strong>1 ano</strong>, vale <strong>{fmtBR(valor1a)}</strong></li>
+        <li>em <strong>3 anos</strong>, vale <strong>{fmtBR(valor3a)}</strong></li>
+        <li>em <strong>5 anos</strong>, vale <strong>{fmtBR(valor5a)}</strong></li>
+      </ul>
+      <p style={{ marginTop: 6, color: 'var(--text)' }}>
+        Em 5 anos, <strong>{fmtBR(perdaTotal5a)}</strong> ({perdaPct5a.toFixed(0)}% do valor de hoje)
+        viraram "fumaça" — considere se o uso ao longo do tempo justifica essa perda.
+      </p>
+    </div>
+  )
 }
 
 function InflacaoCard({ itemValor, itemNome, inflacaoAnual, mesesParaComprar, parcelas }: InflacaoCardProps) {
@@ -205,6 +246,8 @@ export default function CenariosPage(props: Props) {
             onDespesaSubstituida={v => props.onCenarioChange({ despesaSubstituida: v })}
             inflacaoAnual={cenario.inflacaoAnual}
             onInflacaoAnualChange={v => props.onCenarioChange({ inflacaoAnual: v })}
+            taxaDepreciacaoAnual={cenario.taxaDepreciacaoAnual}
+            onTaxaDepreciacaoAnualChange={v => props.onCenarioChange({ taxaDepreciacaoAnual: v })}
           />
         )}
 
@@ -238,6 +281,11 @@ export default function CenariosPage(props: Props) {
               inflacaoAnual={cenario.inflacaoAnual}
               mesesParaComprar={r.fluxo.delay}
               parcelas={cenario.parcelas}
+            />
+            <DepreciacaoCard
+              itemValor={cenario.itemValor}
+              itemNome={cenario.itemNome.trim() || 'Item'}
+              taxaDepreciacaoAnual={cenario.taxaDepreciacaoAnual}
             />
             <ResultadoSection
               resultado={r.veredito}

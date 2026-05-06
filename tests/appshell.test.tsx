@@ -17,6 +17,7 @@ const cenarioBase: Cenario = {
   criadoEm: 0,
   atualizadoEm: 0,
   inflacaoAnual: 0,
+  taxaDepreciacaoAnual: 0,
 }
 
 const stateBase: AppState = {

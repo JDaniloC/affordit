@@ -25,6 +25,7 @@ const cenario: Cenario = {
   criadoEm: 1,
   atualizadoEm: 1,
   inflacaoAnual: 0,
+  taxaDepreciacaoAnual: 0,
 }
 
 const propsBase = {

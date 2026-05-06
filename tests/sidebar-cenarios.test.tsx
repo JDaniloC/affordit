@@ -11,6 +11,7 @@ const baseCenario: Cenario = {
   manutencaoMensal: 0, entradaValor: 0, despesaSubstituida: 0,
   criadoEm: 1, atualizadoEm: 1,
   inflacaoAnual: 0,
+  taxaDepreciacaoAnual: 0,
 }
 
 const propsBase = {

@@ -18,6 +18,8 @@ interface Props {
   onDespesaSubstituida: (v: number) => void
   inflacaoAnual?: number
   onInflacaoAnualChange?: (v: number) => void
+  taxaDepreciacaoAnual?: number
+  onTaxaDepreciacaoAnualChange?: (v: number) => void
 }
 
 const TIPOS: { value: TipoCompra; label: string; icon: string; hint: string }[] = [
@@ -56,6 +58,8 @@ export default function SonhoSection({
   onDespesaSubstituida,
   inflacaoAnual,
   onInflacaoAnualChange,
+  taxaDepreciacaoAnual,
+  onTaxaDepreciacaoAnualChange,
 }: Props) {
   const isPassivo = tipoCompra === 'passivoAltoValor'
 
@@ -97,6 +101,26 @@ export default function SonhoSection({
           <p className="hint">
             Ex: carros novos sobem ~5% a.a., eletrônicos podem ficar mais baratos. Quando preenchido,
             o resultado mostra quanto o item custará no momento em que você terá o dinheiro.
+          </p>
+        </div>
+      )}
+
+      {onTaxaDepreciacaoAnualChange && (
+        <div className="field">
+          <label htmlFor="taxa-depreciacao-anual">Depreciação anual do item (opcional)</label>
+          <div className="input-group">
+            <NumericInput
+              id="taxa-depreciacao-anual"
+              value={taxaDepreciacaoAnual ?? 0}
+              onChange={onTaxaDepreciacaoAnualChange}
+              placeholder="0,0"
+            />
+            <span className="unit">% a.a.</span>
+          </div>
+          <p className="hint">
+            Quanto o item perde de valor por ano após a compra. Ex: carros usados depreciam
+            ~15% a.a., notebooks ~25% a.a., celulares ~30% a.a. O resultado mostra o valor
+            do bem em 1 / 3 / 5 anos para deixar claro que parte do dinheiro vira "fumaça".
           </p>
         </div>
       )}

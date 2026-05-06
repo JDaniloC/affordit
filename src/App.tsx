@@ -40,6 +40,7 @@ function cenarioVazio(): Cenario {
     criadoEm: agora,
     atualizadoEm: agora,
     inflacaoAnual: 0,
+    taxaDepreciacaoAnual: 0,
   }
 }
 

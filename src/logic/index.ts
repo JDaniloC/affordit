@@ -1455,6 +1455,33 @@ function calcValorFuturoItem(
   return valor * Math.pow(1 + taxaAnual / 100, meses / 12)
 }
 
+// ===========================================================
+// DEPRECIAÇÃO DE ITENS NÃO-IMÓVEIS
+// ===========================================================
+
+/**
+ * Valor depreciado do item após `meses` a `taxaAnual` % a.a. (depreciação
+ * anual). Regime composto inverso: VF = valor * (1 - taxaAnual/100)^(meses/12).
+ *
+ * Útil para carros, eletrônicos e bens em geral que perdem valor com o tempo.
+ *
+ * Exemplos:
+ *   calcValorDepreciado(50000, 15, 12) → 42500 (carro perde 15% em 1 ano)
+ *   calcValorDepreciado(50000, 15, 24) → 36125 (carro perde 27.75% em 2 anos)
+ *   calcValorDepreciado(50000, 0, 24)  → 50000 (sem depreciação)
+ *   calcValorDepreciado(50000, 15, 0)  → 50000 (zero meses)
+ *   calcValorDepreciado(50000, 100, 12) → 0 (taxa 100% — sem valor após 1 ano)
+ */
+function calcValorDepreciado(
+  valor: number,
+  taxaAnual: number,
+  meses: number,
+): number {
+  if (taxaAnual <= 0 || meses <= 0) return valor
+  const taxaClampada = Math.min(100, Math.max(0, taxaAnual))
+  return valor * Math.pow(1 - taxaClampada / 100, meses / 12)
+}
+
 export {
   calcCronogramaMetas,
   calcMesItemAposFila,
@@ -1502,4 +1529,5 @@ export {
   calcMesQueAtingeMeta,
   calcAtrasoCompra,
   calcValorFuturoItem,
+  calcValorDepreciado,
 }
