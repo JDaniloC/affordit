@@ -52,6 +52,13 @@ export interface PerfilFinanceiro {
   reservaMeses: number
   rendimentoAnual: number
   metaValor: number
+  /**
+   * P2.7 — Redução hipotética de custo de vida (R$/mês).
+   * Quando > 0, todos os cálculos rodam como se o custo fosse
+   * (custo - reducaoHipotetica). Permite simular "e se eu cortasse R$ X?".
+   * Default 0 para usuários novos e migrações.
+   */
+  reducaoHipotetica: number
 }
 
 export interface Cenario {
@@ -87,6 +94,7 @@ export const PERFIL_VAZIO: PerfilFinanceiro = {
   reservaMeses: 6,
   rendimentoAnual: 0,
   metaValor: 0,
+  reducaoHipotetica: 0,
 }
 
 export const APP_STATE_VAZIO: AppState = {

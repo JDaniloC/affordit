@@ -90,6 +90,7 @@ export default function App() {
   const parcelasExistentes = state.perfil.parcelasExistentes
   const rendimentoAnual = state.perfil.rendimentoAnual
   const metaValor = state.perfil.metaValor
+  const reducaoHipotetica = state.perfil.reducaoHipotetica
   const metas = state.metas
   const itemNome = cenario?.itemNome ?? ''
   const itemValor = cenario?.itemValor ?? 0
@@ -130,6 +131,7 @@ export default function App() {
   const setParcelasExistentes = (v: number) => setPerfil({ parcelasExistentes: v })
   const setRendimentoAnual = (v: number) => setPerfil({ rendimentoAnual: v })
   const setMetaValor = (v: number) => setPerfil({ metaValor: v })
+  const setReducaoHipotetica = (v: number) => setPerfil({ reducaoHipotetica: v })
   const setItemNome = (v: string) => setCenario({ itemNome: v })
   const setItemValor = (v: number) => setCenario({ itemValor: v })
   const setTipoCompra = (v: TipoCompra) => setCenario({ tipoCompra: v })
@@ -192,9 +194,15 @@ export default function App() {
     [patrimonio, itemValor],
   )
 
+  // P2.7 — custo efetivo com a redução hipotética aplicada (default 0 = sem efeito)
+  const custoEfetivo = useMemo(
+    () => Math.max(0, custo - state.perfil.reducaoHipotetica),
+    [custo, state.perfil.reducaoHipotetica],
+  )
+
   const sobraLazerMensal = useMemo(
-    () => Math.max(0, (calcLazerPct(renda, custo, envelopes) / 100) * renda - parcelasExistentes),
-    [renda, custo, envelopes, parcelasExistentes],
+    () => Math.max(0, (calcLazerPct(renda, custoEfetivo, envelopes) / 100) * renda - parcelasExistentes),
+    [renda, custoEfetivo, envelopes, parcelasExistentes],
   )
 
   const custoFinanciamentoLive = useMemo(
