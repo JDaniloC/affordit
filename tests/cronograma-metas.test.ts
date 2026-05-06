@@ -287,19 +287,88 @@ describe('calcCronogramaSaudavel', () => {
     expect(r.agendadas[0].mesQueCompleta).toBeGreaterThan(0)
   })
 
-  it('metaValor=0 ignora critério de atraso e usa só pct', () => {
+  it('metaValor=0 ignora critério de atraso; piso ainda exige sobra acumulada', () => {
+    // patrimônio 200k, sobra 500, taxa 0 → floorPlano constante em 200k
+    // Compra de 5k precisa de 5k acumulados de sobra antes (10 meses).
     const r = calcCronogramaSaudavel(
       [{ id: 1, nome: 'X', valor: 5_000 }],
       200_000, 500, 0, 0, 0.05, 3, 20_000,
     )
-    // 5k é 2.5% de 200k → passa critério 1 imediatamente
-    expect(r.agendadas[0].mesQueCompleta).toBe(0)
+    expect(r.agendadas[0].mesQueCompleta).toBe(10)
   })
 
   it('lista vazia retorna agendadas e inatingiveis vazios', () => {
     const r = calcCronogramaSaudavel([], 100_000, 500, 0, 100_000, 0.05, 3, 20_000)
     expect(r.agendadas).toEqual([])
     expect(r.metasInatingiveis).toEqual([])
+  })
+})
+
+describe('calcCronogramaSaudavel — piso rígido do plano de crescimento (Ciclo G)', () => {
+  it('taxa 0% + sobra 0: nenhuma compra é possível (head start é intocável)', () => {
+    // patrimônio 50k, reserva 20k, taxa 0, sobra 0. Floor = 50k constante.
+    // Sem fluxo, compra de qualquer valor derruba abaixo do floor.
+    const r = calcCronogramaSaudavel(
+      [{ id: 1, nome: 'X', valor: 5_000 }],
+      50_000, 0, 0, 0, 1.0, 999, 20_000,
+    )
+    expect(r.agendadas).toHaveLength(0)
+    expect(r.metasInatingiveis).toHaveLength(1)
+  })
+
+  it('taxa 0% + sobra positiva: compra só completa quando sobra acumulada cobrir o valor', () => {
+    // Floor constante em 50k. Sobra 500/mês. Compra 5k precisa de 10 meses.
+    const r = calcCronogramaSaudavel(
+      [{ id: 1, nome: 'X', valor: 5_000 }],
+      50_000, 500, 0, 0, 1.0, 999, 20_000,
+    )
+    expect(r.agendadas[0].mesQueCompleta).toBe(10)
+  })
+
+  it('taxa 10% a.a. (~0.797% a.m.): compra adiada porque floor cresce com juros', () => {
+    // Taxa anual 10% → mensal ~0.797. patrimônio 50k → floor cresce.
+    // Sobra 500. Compra 5k. Floor(t) = 50000 * 1.00797^t.
+    // Para passar: trajAtual(t) - 5000 ≥ 50000*1.00797^t.
+    // Algumas iterações: a sobra acumulada compounded precisa ≥ 5k.
+    // Com sobra 500/mês a 10% a.a., acumular 5k leva ~9-10 meses.
+    const taxaMensal = (Math.pow(1 + 10 / 100, 1 / 12) - 1) * 100
+    const r = calcCronogramaSaudavel(
+      [{ id: 1, nome: 'X', valor: 5_000 }],
+      50_000, 500, taxaMensal, 0, 1.0, 999, 20_000,
+    )
+    expect(r.agendadas[0].mesQueCompleta).toBeGreaterThan(0)
+    expect(r.agendadas[0].mesQueCompleta).toBeLessThanOrEqual(15)
+  })
+
+  it('cenário do feedback do cliente: patrimônio 70k acima de reserva ridícula NÃO permite compra no mês 0', () => {
+    // 70k patrimônio, reserva 20k → 50k acima da reserva.
+    // Plano de crescimento 10% a.a.
+    // Sem o piso (Ciclo F.3), 5k de lazer iria para o mês 0.
+    // Com o piso, 50k tem que crescer intocado → compras só de sobra acumulada.
+    const taxaMensal = (Math.pow(1 + 10 / 100, 1 / 12) - 1) * 100
+    const r = calcCronogramaSaudavel(
+      [{ id: 1, nome: 'Lazer', valor: 5_000 }],
+      70_000, 500, taxaMensal, 100_000, 1.0, 999, 20_000,
+    )
+    expect(r.agendadas[0].mesQueCompleta).toBeGreaterThan(0)
+  })
+
+  it('múltiplas metas em sequência: cada uma respeita o piso', () => {
+    // patrimônio 100k, sobra 500, taxa 0 → floor = 100k constante.
+    // 3 metas de 1k cada. Cada uma precisa que sobra acumulada cubra desde a meta anterior.
+    const r = calcCronogramaSaudavel(
+      [
+        { id: 1, nome: 'A', valor: 1_000 },
+        { id: 2, nome: 'B', valor: 1_000 },
+        { id: 3, nome: 'C', valor: 1_000 },
+      ],
+      100_000, 500, 0, 0, 1.0, 999, 20_000,
+    )
+    expect(r.agendadas).toHaveLength(3)
+    // Após cada compra, sobra precisa repor 1k → 2 meses cada
+    expect(r.agendadas[0].mesQueCompleta).toBe(2)
+    expect(r.agendadas[1].mesQueCompleta).toBe(4)
+    expect(r.agendadas[2].mesQueCompleta).toBe(6)
   })
 })
 

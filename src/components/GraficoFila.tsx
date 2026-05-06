@@ -100,6 +100,14 @@ export default function GraficoFila({
     [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, horizonte, filaParaTrajetoria],
   )
 
+  // Piso do plano (Ciclo G): patrimônio inicial crescendo intocado à taxa do plano.
+  const trajPlano = useMemo(() => {
+    const r = rendimentoMensalEfetivo > 0 ? rendimentoMensalEfetivo / 100 : 0
+    return Array.from({ length: horizonte + 1 }, (_, t) =>
+      r > 0 ? patrimonio * Math.pow(1 + r, t) : patrimonio,
+    )
+  }, [patrimonio, rendimentoMensalEfetivo, horizonte])
+
   const data = useMemo(
     () =>
       // trajSem[0] é o patrimônio inicial; pular o índice 0 para começar em mês 1.
@@ -107,8 +115,9 @@ export default function GraficoFila({
         mes: i + 1,
         semFila: Math.round(trajSem[i + 1]),
         comFila: Math.round(trajCom[i + 1]),
+        planoCrescimento: Math.round(trajPlano[i + 1]),
       })),
-    [trajSem, trajCom, horizonte],
+    [trajSem, trajCom, trajPlano, horizonte],
   )
 
   const comprasMarcadas = useMemo(
@@ -245,6 +254,17 @@ export default function GraficoFila({
             fill="url(#gradFilaCom)"
             dot={false}
             activeDot={{ r: 4, fill: '#f59e0b' }}
+          />
+          <Area
+            type="monotone"
+            dataKey="planoCrescimento"
+            name="Patrimônio protegido (estratégia)"
+            stroke="#a78bfa"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            fill="none"
+            dot={false}
+            activeDot={{ r: 4, fill: '#a78bfa' }}
           />
 
           {comprasMarcadas.map((c) => (

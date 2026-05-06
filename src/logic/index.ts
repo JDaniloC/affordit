@@ -929,6 +929,13 @@ function calcCronogramaSaudavel(
   const inatingiveis: Meta[] = []
   let mesMinimo = 0
 
+  // Piso rígido do plano de crescimento (Ciclo G):
+  // floorPlano(t) = patrimonio * (1 + r)^t — capital inicial cresce intocado
+  // à taxa configurada. Compras só podem ser financiadas pela sobra acumulada.
+  const r = taxaMensal > 0 ? taxaMensal / 100 : 0
+  const floorPlano = (t: number): number =>
+    r > 0 ? patrimonio * Math.pow(1 + r, t) : patrimonio
+
   for (let i = 0; i < metas.length; i++) {
     const m = metas[i]
     const valor = Math.max(0, m.valor)
@@ -955,6 +962,11 @@ function calcCronogramaSaudavel(
       if (patrimonioNoMomento - valor < reservaAlvo) continue
       // Critério 1: valor ≤ X% do patrimônio
       if (patrimonioNoMomento * pctMaxPatrimonio < valor) continue
+
+      // Critério 3 (Ciclo G): piso rígido do plano de crescimento.
+      // Patrimônio pós-compra deve ficar ≥ floorPlano(t).
+      // Demonstrável: se vale no momento da compra, vale para todo s ≥ t.
+      if (patrimonioNoMomento - valor < floorPlano(t)) continue
 
       // Critério 2: atraso marginal na meta de patrimônio
       if (metaValor > 0) {

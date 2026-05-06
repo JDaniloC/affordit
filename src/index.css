@@ -2271,6 +2271,69 @@ footer {
   cursor: pointer;
 }
 
+/* Mensagem do plano de crescimento (Ciclo G) */
+.modo-saudavel-plano-info {
+  margin: 10px 0 0 0;
+  padding: 8px 12px;
+  background: rgba(167, 139, 250, 0.08);
+  border-left: 3px solid rgba(167, 139, 250, 0.5);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.modo-saudavel-plano-info strong {
+  color: #a78bfa;
+}
+
+.modo-saudavel-plano-vazio {
+  background: rgba(245, 158, 11, 0.06);
+  border-left-color: rgba(245, 158, 11, 0.5);
+}
+
+.modo-saudavel-plano-vazio a {
+  color: var(--warning);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* Presets de crescimento (Ciclo G) */
+.presets-crescimento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.preset-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.preset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.preset-btn.is-active {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: #a78bfa;
+}
+
+.preset-btn strong {
+  color: inherit;
+}
+
 .modo-saudavel-sliders {
   margin-top: 14px;
   display: flex;

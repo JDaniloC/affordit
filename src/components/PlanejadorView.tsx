@@ -39,7 +39,7 @@ export default function PlanejadorView({
 }: Props) {
   const [adicionando, setAdicionando] = useState(false)
   const [editandoId, setEditandoId] = useState<number | null>(null)
-  const [modoSaudavel, setModoSaudavel] = useState(false)
+  const [modoSaudavel, setModoSaudavel] = useState(true)
   const [pctMaxPatrimonio, setPctMaxPatrimonio] = useState(0.05)
   const [atrasoMaxPorMeta, setAtrasoMaxPorMeta] = useState(3)
 
@@ -180,6 +180,26 @@ export default function PlanejadorView({
                   para o seu patrimônio
                 </span>
               </label>
+
+              {modoSaudavel && (() => {
+                const rendimentoAnualEstimado =
+                  rendimentoMensalEfetivo > 0
+                    ? (Math.pow(1 + rendimentoMensalEfetivo / 100, 12) - 1) * 100
+                    : 0
+                return rendimentoAnualEstimado > 0 ? (
+                  <p className="modo-saudavel-plano-info">
+                    O planejador respeita seu plano de crescimento de{' '}
+                    <strong>{rendimentoAnualEstimado.toFixed(1)}% a.a.</strong> — compras vêm
+                    apenas da sobra mensal acumulada, sem mexer no capital protegido.
+                  </p>
+                ) : (
+                  <p className="modo-saudavel-plano-info modo-saudavel-plano-vazio">
+                    Você ainda não definiu uma estratégia de crescimento. Sem ela, o
+                    planejador permite usar todo seu patrimônio acima da reserva.{' '}
+                    <a href="#/perfil">Definir agora →</a>
+                  </p>
+                )
+              })()}
 
               {modoSaudavel && (
                 <div className="modo-saudavel-sliders">

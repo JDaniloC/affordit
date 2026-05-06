@@ -85,9 +85,25 @@ export default function RealidadeSection({
 
       <div className="field">
         <label htmlFor="rendimento-anual">
-          Rendimento estimado da reserva{' '}
-          <span className="hint-inline">(opcional — 0 = sem rendimento)</span>
+          Estratégia de crescimento do patrimônio{' '}
+          <span className="hint-inline">(% a.a.)</span>
         </label>
+        <div className="presets-crescimento">
+          {[
+            { id: 'conservador', label: '🛡️ Conservador', taxa: 6 },
+            { id: 'moderado', label: '⚖️ Moderado', taxa: 10 },
+            { id: 'agressivo', label: '🚀 Agressivo', taxa: 15 },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`preset-btn${rendimentoAnual === p.taxa ? ' is-active' : ''}`}
+              onClick={() => onRendimentoAnualChange(p.taxa)}
+            >
+              {p.label} <strong>{p.taxa}%</strong>
+            </button>
+          ))}
+        </div>
         <div className="input-group">
           <NumericInput
             id="rendimento-anual"
@@ -100,7 +116,9 @@ export default function RealidadeSection({
           <span className="unit">% a.a.</span>
         </div>
         <p className="field-hint">
-          Selic/CDI hoje está em torno de 10–13% a.a. Use 0 para calcular sem rendimento (conservador). A conversão para taxa mensal é feita automaticamente pelo regime composto.
+          Quanto você espera que seu patrimônio cresça por ano. Aplica juros compostos em
+          todas as projeções e protege esse crescimento contra compras no planejador.
+          Selic/CDI hoje está em torno de 10–13% a.a.; use 0 para calcular sem rendimento.
         </p>
       </div>
 
