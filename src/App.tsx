@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 const logoUrl = import.meta.env.BASE_URL + 'logo.png'
 import { AppState, Cenario, Envelope, Meta, TipoCompra } from './types'
 import { loadAppState, saveAppState } from './state/storage'
+import { tryDecodeShareFromUrl, clearShareParamFromUrl } from './state/share'
 import {
   calcLazerPct,
   selectCriterioAuto,
@@ -43,19 +44,29 @@ function cenarioVazio(): Cenario {
 }
 
 export default function App() {
-  // Estado raiz único
-  const [state, setState] = useState<AppState>(() => {
+  // Boot: prioridade para estado compartilhado via URL, depois localStorage.
+  // Lazy init via useState para rodar uma única vez. Capturamos o flag antes
+  // de limpar a URL para que o banner saiba que veio de URL compartilhada.
+  const [bootInicial] = useState(() => {
+    const compartilhado = tryDecodeShareFromUrl()
+    if (compartilhado) {
+      clearShareParamFromUrl()
+      return { estado: compartilhado, fromShare: true }
+    }
     const loaded = loadAppState()
-    // Auto-cria cenário rascunho apenas durante onboarding (wizard precisa de pelo menos 1)
     if (loaded.cenarios.length === 0 && !loaded.onboardingConcluido) {
       const c = cenarioVazio()
-      return { ...loaded, cenarios: [c], cenarioAtivoId: c.id }
+      return { estado: { ...loaded, cenarios: [c], cenarioAtivoId: c.id }, fromShare: false }
     }
     if (loaded.cenarios.length > 0 && !loaded.cenarioAtivoId) {
-      return { ...loaded, cenarioAtivoId: loaded.cenarios[0].id }
+      return { estado: { ...loaded, cenarioAtivoId: loaded.cenarios[0].id }, fromShare: false }
     }
-    return loaded
+    return { estado: loaded, fromShare: false }
   })
+  const [state, setState] = useState<AppState>(bootInicial.estado)
+  const [vindoDeCompartilhamento, setVindoDeCompartilhamento] = useState<boolean>(
+    bootInicial.fromShare,
+  )
 
   const [erro, setErro] = useState<string | null>(null)
   const [step, setStep] = useState<number>(1)
@@ -316,6 +327,8 @@ export default function App() {
           window.location.hash = formatHash('cenarios', { id: cenario.id })
         }}
         onRefazerSetup={refazerSetup}
+        vindoDeCompartilhamento={vindoDeCompartilhamento}
+        onDispensarBannerCompartilhamento={() => setVindoDeCompartilhamento(false)}
       />
     )
   }

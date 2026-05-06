@@ -3268,6 +3268,69 @@ footer {
   border-top: 1px solid var(--border);
 }
 
+/* ===== Compartilhamento via URL (P2.10) ===== */
+.banner-compartilhamento {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(99, 102, 241, 0.08);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.banner-compartilhamento-fechar {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.banner-compartilhamento-fechar:hover {
+  color: var(--text);
+}
+
+.footer-actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-compartilhar {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.btn-compartilhar:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.footer-feedback {
+  font-size: 0.78rem;
+}
+
+.footer-feedback.ok {
+  color: var(--success);
+}
+
+.footer-feedback.erro {
+  color: var(--danger);
+}
+
 .page-header {
   margin-bottom: 24px;
 }

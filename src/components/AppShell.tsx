@@ -7,6 +7,7 @@ import CenariosPage from '../pages/CenariosPage'
 import CompararPage from '../pages/CompararPage'
 import MetasPage from '../pages/MetasPage'
 import { ScoreSaudeResult } from '../logic/index'
+import { encodeShareUrl } from '../state/share'
 
 interface Props {
   state: AppState
@@ -26,11 +27,33 @@ interface Props {
   onAbrirMetas: () => void
   onSimularMeta: (m: Meta) => void
   onRefazerSetup: () => void
+  vindoDeCompartilhamento: boolean
+  onDispensarBannerCompartilhamento: () => void
 }
 
 export default function AppShell(props: Props) {
   const { route, navigate } = useHashRoute()
   const [sidebarAberta, setSidebarAberta] = useState(false)
+  const [statusCompartilhar, setStatusCompartilhar] = useState<
+    'idle' | 'copiado' | 'erro'
+  >('idle')
+
+  async function compartilhar() {
+    const url = encodeShareUrl(props.state)
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url)
+        setStatusCompartilhar('copiado')
+      } else {
+        // Fallback para navegadores sem Clipboard API
+        window.prompt('Copie este link para compartilhar sua simulação:', url)
+        setStatusCompartilhar('copiado')
+      }
+    } catch {
+      setStatusCompartilhar('erro')
+    }
+    setTimeout(() => setStatusCompartilhar('idle'), 3000)
+  }
 
   // Fecha sidebar automaticamente ao trocar de rota
   useEffect(() => {
@@ -62,6 +85,23 @@ export default function AppShell(props: Props) {
         mostrarHamburger={route.path === 'cenarios'}
         onToggleSidebar={() => setSidebarAberta(v => !v)}
       />
+
+      {props.vindoDeCompartilhamento && (
+        <div className="banner-compartilhamento" role="status">
+          <span>
+            🔗 Você abriu uma simulação compartilhada. Mudanças que você fizer agora
+            sobrescrevem sua simulação local.
+          </span>
+          <button
+            type="button"
+            className="banner-compartilhamento-fechar"
+            onClick={props.onDispensarBannerCompartilhamento}
+            aria-label="Dispensar aviso"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <main className="app-shell-main">
         {route.path === 'perfil' && (
@@ -128,6 +168,22 @@ export default function AppShell(props: Props) {
 
       <footer className="app-shell-footer">
         <p>Seus dados são salvos localmente no seu navegador. Nenhuma informação é enviada.</p>
+        <div className="footer-actions">
+          <button
+            type="button"
+            className="btn-compartilhar"
+            onClick={compartilhar}
+            aria-label="Compartilhar simulação via link"
+          >
+            🔗 Compartilhar simulação
+          </button>
+          {statusCompartilhar === 'copiado' && (
+            <span className="footer-feedback ok">Link copiado para a área de transferência!</span>
+          )}
+          {statusCompartilhar === 'erro' && (
+            <span className="footer-feedback erro">Não foi possível copiar — tente novamente.</span>
+          )}
+        </div>
       </footer>
     </div>
   )

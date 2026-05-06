@@ -48,6 +48,8 @@ const propsCommon = {
   onAbrirMetas: () => {},
   onSimularMeta: () => {},
   onRefazerSetup: () => {},
+  vindoDeCompartilhamento: false,
+  onDispensarBannerCompartilhamento: () => {},
 }
 
 describe('AppShell', () => {
