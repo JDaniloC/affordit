@@ -10,6 +10,55 @@ import StepperNav from '../components/StepperNav'
 
 const CENARIO_STEP_LABELS = ['Item', 'Estratégia', 'Resultado']
 
+const fmtBRL = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
+interface AvisosEstrategiaProps {
+  parcelaEfetiva: number
+  sobraLazerMensal: number
+  parcelasExistentes: number
+  renda: number
+}
+
+function AvisosEstrategia({
+  parcelaEfetiva,
+  sobraLazerMensal,
+  parcelasExistentes,
+  renda,
+}: AvisosEstrategiaProps) {
+  const parcelaPctSobra = sobraLazerMensal > 0 ? parcelaEfetiva / sobraLazerMensal : 0
+  const dti = renda > 0 ? (parcelasExistentes + parcelaEfetiva) / renda : 0
+  const avisoParcela = parcelaEfetiva > 0 && sobraLazerMensal > 0 && parcelaPctSobra > 0.5
+  const avisoDti = renda > 0 && dti > 0.3
+
+  if (!avisoParcela && !avisoDti) return null
+
+  return (
+    <>
+      {avisoParcela && (
+        <div className="banner-aviso" role="alert">
+          <strong>⚠ Parcela compromete mais de 50% da sua sobra mensal</strong>
+          <p style={{ marginTop: 6 }}>
+            Esta parcela ({fmtBRL(parcelaEfetiva)}) ocupa {(parcelaPctSobra * 100).toFixed(0)}% da
+            sua sobra de lazer ({fmtBRL(sobraLazerMensal)}). Imprevistos viram problema:
+            considere prazos maiores, item mais barato, ou esperar antes de comprar.
+          </p>
+        </div>
+      )}
+      {avisoDti && (
+        <div className="banner-aviso" role="alert">
+          <strong>⚠ Comprometimento de renda passa de 30% (DTI {(dti * 100).toFixed(0)}%)</strong>
+          <p style={{ marginTop: 6 }}>
+            Suas parcelas ({fmtBRL(parcelasExistentes + parcelaEfetiva)}) somam mais de 30%
+            da sua renda ({fmtBRL(renda)}). Bancos costumam negar crédito acima desse limite e
+            é o ponto onde o orçamento fica frágil a qualquer queda de receita.
+          </p>
+        </div>
+      )}
+    </>
+  )
+}
+
 interface Props {
   perfil: AppState['perfil']
   cenario: Cenario | null
@@ -118,16 +167,24 @@ export default function CenariosPage(props: Props) {
         )}
 
         {cenarioStep === 2 && (
-          <EstrategiaSection
-            criterioAuto={criterio}
-            patrimonio={perfil.patrimonio}
-            itemValor={cenario.itemValor}
-            parcelas={cenario.parcelas}
-            onParcelasChange={v => props.onCenarioChange({ parcelas: v })}
-            taxaJuros={cenario.taxaJuros}
-            onTaxaJurosChange={v => props.onCenarioChange({ taxaJuros: v })}
-            custoFinanciamento={custoFinanciamentoLive}
-          />
+          <>
+            <EstrategiaSection
+              criterioAuto={criterio}
+              patrimonio={perfil.patrimonio}
+              itemValor={cenario.itemValor}
+              parcelas={cenario.parcelas}
+              onParcelasChange={v => props.onCenarioChange({ parcelas: v })}
+              taxaJuros={cenario.taxaJuros}
+              onTaxaJurosChange={v => props.onCenarioChange({ taxaJuros: v })}
+              custoFinanciamento={custoFinanciamentoLive}
+            />
+            <AvisosEstrategia
+              parcelaEfetiva={r.parcelaEfetiva}
+              sobraLazerMensal={r.sobraLazerMensal}
+              parcelasExistentes={perfil.parcelasExistentes}
+              renda={perfil.renda}
+            />
+          </>
         )}
 
         {cenarioStep === 3 && (

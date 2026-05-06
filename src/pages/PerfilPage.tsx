@@ -25,7 +25,14 @@ interface Props {
   onRefazerSetup: () => void
 }
 
+const fmt = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
 export default function PerfilPage(props: Props) {
+  // Regra 50/30/20: custo de vida fixo deve idealmente ser ≤ 50% da renda
+  const custoSobreRenda = props.renda > 0 ? props.custo / props.renda : 0
+  const aviso503020 = props.renda > 0 && custoSobreRenda > 0.5
+
   return (
     <div className="page-perfil">
       <header className="page-header">
@@ -46,6 +53,17 @@ export default function PerfilPage(props: Props) {
           parcelasExistentes={props.parcelasExistentes}
           onParcelasExistentesChange={props.onParcelasExistentesChange}
         />
+        {aviso503020 && (
+          <div className="banner-aviso" role="alert">
+            <strong>⚠ Custo de vida acima de 50% da renda</strong>
+            <p style={{ marginTop: 6 }}>
+              Seu custo fixo é <strong>{fmt(props.custo)}</strong> ({(custoSobreRenda * 100).toFixed(0)}% de {fmt(props.renda)}).
+              A regra <strong>50/30/20</strong> sugere ≤ 50% para necessidades, deixando 30% para desejos
+              e 20% para poupança e investimentos. Acima disso fica difícil acumular reserva e poupar
+              para metas.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="page-section">
