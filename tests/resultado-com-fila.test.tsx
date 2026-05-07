@@ -33,7 +33,6 @@ const baseProps = (over: Partial<RProps> = {}): RProps => ({
     alertaDegracao: false,
     dentro1pct: false,
   },
-  roiOk: false,
   ferramenta: false,
   renda: 5_000,
   custo: 3_000,

@@ -3,11 +3,8 @@
  * Pode ser importada tanto pelo App quanto pelos testes.
  */
 
-export interface Envelope {
-  id?: number
-  nome: string
-  pct: number
-}
+import type { Envelope, Meta, TipoCompra } from '../types'
+export type { Envelope, Meta, TipoCompra }
 
 export type StatusReserva = 'perigo' | 'atencao' | 'seguranca'
 export type StatusPatrimonio = 'green' | 'yellow' | 'red'
@@ -61,40 +58,6 @@ export interface StatusPatrimonioResult {
   statusAposCompra: StatusPatrimonio
   alertaDegracao: boolean
   dentro1pct: boolean
-}
-
-export interface ValidarBigTicketParams {
-  patrimonio: number
-  entrada: number
-  custo: number
-  novaParcela: number
-  manutencao: number
-  balceLazer: number
-  baldeInvestimento: number
-  aluguelSubstituido: number
-  renda: number
-}
-
-export interface ValidarBigTicketResult {
-  passouEntrada: boolean
-  passouDTI: boolean
-  passouMargem: boolean
-  aprovado: boolean
-}
-
-export interface ValidarVeiculoParams {
-  parcela: number
-  custoOculto: number
-  balceLazer: number
-  renda: number
-}
-
-export interface ValidarImovelParams {
-  novoCustoFixo: number
-  renda: number
-  baldeInvestimento: number
-  balceLazer: number
-  parcela?: number
 }
 
 export interface CriterioInfo {
@@ -295,18 +258,6 @@ function calcStatusPatrimonio(
 }
 
 // ===========================================================
-// CRITÉRIO 3: ROI PROFISSIONAL
-// ===========================================================
-
-function calcRoiAprovacao(statusPatrimonio: StatusPatrimonio, ferramenta: boolean): boolean {
-  return ferramenta === true && statusPatrimonio !== 'red'
-}
-
-// ===========================================================
-// IMPACTO NO OBJETIVO DE ACUMULAÇÃO
-// ===========================================================
-
-// ===========================================================
 // CUSTO REAL DO FINANCIAMENTO COM JUROS (P0.2)
 // ===========================================================
 
@@ -357,24 +308,30 @@ export interface ValidarPassivoAltoValorParams {
   baldeInvestimento: number  // soma dos envelopes de investimento em R$
 }
 
-export type ValidarPassivoAltoValorResult = ValidarBigTicketResult
+export interface ValidarPassivoAltoValorResult {
+  passouEntrada: boolean
+  passouDTI: boolean
+  passouMargem: boolean
+  aprovado: boolean
+}
 
 /**
  * Valida a viabilidade de um passivo de alto valor (carro, imóvel, equipamento caro).
- * Aplica as 3 regras: entrada, DTI e margem de manobra.
+ * Aplica as 3 regras: entrada preserva 6m de reserva, DTI agregado, margem ≥ 5% renda.
  */
 function validarPassivoAltoValor(p: ValidarPassivoAltoValorParams): ValidarPassivoAltoValorResult {
-  return validarBigTicket({
-    patrimonio: p.patrimonio,
-    entrada: p.entrada,
-    custo: p.custo,
-    novaParcela: p.parcela,
-    manutencao: p.manutencao,
-    balceLazer: p.baldeLazer,
-    baldeInvestimento: p.baldeInvestimento,
-    aluguelSubstituido: p.despesaSubstituida,
-    renda: p.renda,
-  })
+  const passouEntrada = p.patrimonio - p.entrada >= p.custo * 6
+  const passouDTI =
+    p.parcela + p.manutencao - p.despesaSubstituida <= p.baldeLazer + p.baldeInvestimento
+  const custoEfetivo = p.custo - p.despesaSubstituida
+  const sobra = p.renda - custoEfetivo - p.parcela
+  const passouMargem = sobra >= p.renda * 0.05
+  return {
+    passouEntrada,
+    passouDTI,
+    passouMargem,
+    aprovado: passouEntrada && passouDTI && passouMargem,
+  }
 }
 
 export interface MetaFinanceiraResult {
@@ -472,262 +429,11 @@ const CRITERIOS: Record<string, CriterioInfo> = {
 }
 
 // ===========================================================
-// BIG TICKET — ATIVAÇÃO
-// ===========================================================
-
-function isBigTicket(itemValor: number, renda: number, isHighValueAsset: boolean): boolean {
-  return isHighValueAsset === true || itemValor > renda * 24
-}
-
-// ===========================================================
-// BIG TICKET — CHECAGEM A: VALIDAÇÃO DE ENTRADA
-// ===========================================================
-
-function validarEntrada(patrimonio: number, entrada: number, custo: number): boolean {
-  return patrimonio - entrada >= custo * 6
-}
-
-// ===========================================================
-// BIG TICKET — CHECAGEM B: TAXA DE ESFORÇO (DTI)
-// ===========================================================
-
-function calcDTI(
-  novaParcela: number,
-  manutencao: number,
-  balceLazer: number,
-  baldeInvestimento: number,
-  aluguelSubstituido: number,
-): boolean {
-  return novaParcela + manutencao - aluguelSubstituido <= balceLazer + baldeInvestimento
-}
-
-// ===========================================================
-// BIG TICKET — CHECAGEM C: MARGEM DE MANOBRA
-// ===========================================================
-
-function calcMargemManobra(
-  renda: number,
-  custo: number,
-  novaParcela: number,
-  aluguelSubstituido: number,
-): boolean {
-  const custoEfetivo = custo - aluguelSubstituido
-  const sobra = renda - custoEfetivo - novaParcela
-  return sobra >= renda * 0.05
-}
-
-// ===========================================================
-// BIG TICKET — VEÍCULOS
+// CUSTO OCULTO DE VEÍCULO (sugestão de UI: 1% do valor)
 // ===========================================================
 
 function calcCustoOcultoVeiculo(itemValor: number): number {
   return itemValor * 0.01
-}
-
-function validarVeiculo({ parcela, custoOculto, balceLazer, renda }: ValidarVeiculoParams): boolean {
-  const cabeLazer = parcela + custoOculto <= balceLazer
-  const dentroDeTeto = parcela < renda * 0.2
-  return cabeLazer && dentroDeTeto
-}
-
-// ===========================================================
-// BIG TICKET — IMÓVEIS
-// ===========================================================
-
-function calcNovoCustoFixoImovel(
-  custoFixoAtual: number,
-  aluguel: number,
-  parcela: number,
-  condominioIPTU: number,
-): number {
-  return custoFixoAtual - aluguel + parcela + condominioIPTU
-}
-
-function validarImovel({
-  novoCustoFixo,
-  renda,
-  baldeInvestimento,
-  balceLazer,
-  parcela,
-}: ValidarImovelParams): boolean {
-  if (parcela !== undefined && parcela >= renda * 0.35) return false
-  if (novoCustoFixo <= renda * 0.5) return true
-  const diferenca = novoCustoFixo - renda * 0.5
-  return baldeInvestimento >= diferenca && balceLazer > 0
-}
-
-// ===========================================================
-// BIG TICKET — ORQUESTRADOR
-// ===========================================================
-
-function validarBigTicket(p: ValidarBigTicketParams): ValidarBigTicketResult {
-  const passouEntrada = validarEntrada(p.patrimonio, p.entrada, p.custo)
-  const passouDTI = calcDTI(
-    p.novaParcela,
-    p.manutencao,
-    p.balceLazer,
-    p.baldeInvestimento,
-    p.aluguelSubstituido,
-  )
-  const passouMargem = calcMargemManobra(p.renda, p.custo, p.novaParcela, p.aluguelSubstituido)
-  return {
-    passouEntrada,
-    passouDTI,
-    passouMargem,
-    aprovado: passouEntrada && passouDTI && passouMargem,
-  }
-}
-
-// ===========================================================
-// TIPOS DE COMPRA (types.md)
-// ===========================================================
-
-// --- Tipo 1: Lazer ---
-
-function calcTempoEsperaLazer(preco: number, sobraLazerMensal: number): number | null {
-  if (sobraLazerMensal <= 0) return null
-  return Math.ceil(preco / sobraLazerMensal)
-}
-
-function isLazerBloqueado(patrimonio: number, custo: number): boolean {
-  if (custo <= 0) return false
-  return patrimonio < custo * 6
-}
-
-// --- Tipo 2: Ferramenta ---
-
-function isPermitidoFerramenta(patrimonio: number, custo: number): boolean {
-  if (custo <= 0) return true
-  return patrimonio >= custo * 6
-}
-
-// --- Tipo 3: Grande Sonho — Veículos ---
-
-function calcCustoMensalVeiculo(
-  parcela: number,
-  manutencao: number,
-  depreciacao: number,
-): number {
-  return parcela + manutencao + depreciacao
-}
-
-function validarCompraVeiculo(
-  parcela: number,
-  manutencao: number,
-  depreciacao: number,
-  baldeLazer: number,
-): boolean {
-  return calcCustoMensalVeiculo(parcela, manutencao, depreciacao) <= baldeLazer
-}
-
-// --- Tipo 3: Grande Sonho — Imóveis ---
-
-function calcCustoEfetivoImovel(
-  novaParcela: number,
-  manutencao: number,
-  aluguelAntigo: number,
-): number {
-  return novaParcela + manutencao - aluguelAntigo
-}
-
-function validarCompraImovel(
-  novaParcela: number,
-  manutencao: number,
-  aluguelAntigo: number,
-  baldeInvestimento: number,
-  baldeLazer: number,
-): boolean {
-  const custoEfetivo = calcCustoEfetivoImovel(novaParcela, manutencao, aluguelAntigo)
-  return custoEfetivo <= baldeInvestimento + baldeLazer
-}
-
-// --- Entrada mínima: não pode zerar reserva de 12 meses (GREEN) ---
-
-function validarEntradaMinima(patrimonio: number, entrada: number, custo: number): boolean {
-  return patrimonio - entrada >= custo * 12
-}
-
-// --- Dispatcher ---
-
-interface LazerParams {
-  preco: number
-  sobraLazerMensal: number
-  patrimonio: number
-  custo: number
-}
-
-interface FerramentaParams {
-  patrimonio: number
-  custo: number
-}
-
-interface GrandeSonhoVeiculoParams {
-  subtipo: 'veiculo'
-  parcela: number
-  manutencao: number
-  depreciacao: number
-  balceLazer: number
-  patrimonio: number
-  entrada: number
-  custo: number
-}
-
-interface GrandeSonhoImovelParams {
-  subtipo: 'imovel'
-  novaParcela: number
-  manutencao: number
-  aluguelAntigo: number
-  baldeInvestimento: number
-  balceLazer: number
-  patrimonio: number
-  entrada: number
-  custo: number
-}
-
-type GrandeSonhoParams = GrandeSonhoVeiculoParams | GrandeSonhoImovelParams
-
-type ResolverParams = LazerParams | FerramentaParams | GrandeSonhoParams
-
-function resolverTipoCompra(
-  tipo: 'lazer' | 'ferramenta' | 'grandeSonho',
-  params: ResolverParams,
-): Record<string, unknown> {
-  if (tipo === 'lazer') {
-    const p = params as LazerParams
-    const bloqueado = isLazerBloqueado(p.patrimonio, p.custo)
-    const tempoEspera = calcTempoEsperaLazer(p.preco, p.sobraLazerMensal)
-    return { bloqueado, tempoEspera }
-  }
-
-  if (tipo === 'ferramenta') {
-    const p = params as FerramentaParams
-    return { permitido: isPermitidoFerramenta(p.patrimonio, p.custo) }
-  }
-
-  if (tipo === 'grandeSonho') {
-    const p = params as GrandeSonhoParams
-    const entradaOk = validarEntradaMinima(p.patrimonio, p.entrada, p.custo)
-    const reprovadoNaEntrada = !entradaOk
-
-    let compraCabe = false
-    if (p.subtipo === 'veiculo') {
-      const vp = p as GrandeSonhoVeiculoParams
-      compraCabe = validarCompraVeiculo(vp.parcela, vp.manutencao, vp.depreciacao, vp.balceLazer)
-    } else if (p.subtipo === 'imovel') {
-      const ip = p as GrandeSonhoImovelParams
-      compraCabe = validarCompraImovel(
-        ip.novaParcela,
-        ip.manutencao,
-        ip.aluguelAntigo,
-        ip.baldeInvestimento,
-        ip.balceLazer,
-      )
-    }
-
-    return { aprovado: entradaOk && compraCabe, reprovadoNaEntrada }
-  }
-
-  return {}
 }
 
 // ===========================================================
@@ -840,12 +546,6 @@ function calcAtrasoCompra(
 // ===========================================================
 // PLANEJADOR DE METAS MÚLTIPLAS (Ciclo F)
 // ===========================================================
-
-export interface Meta {
-  id: number
-  nome: string
-  valor: number
-}
 
 export interface MetaAgendada {
   meta: Meta
@@ -1197,8 +897,6 @@ function calcCorte5050(custo: number, renda: number): number | null {
 // representa risco material ao patrimônio do usuário.
 // ===========================================================
 
-export type TipoCompra = 'lazer' | 'ferramenta' | 'passivoAltoValor'
-
 export type ChipRisco =
   | { tipo: 'pct_patrimonio'; pct: number }
   | { tipo: 'lazer_com_parcelas' }
@@ -1502,27 +1200,9 @@ export {
   calcStatusReserva,
   calcFluxoCaixa,
   calcStatusPatrimonio,
-  calcRoiAprovacao,
   selectCriterioAuto,
   CRITERIOS,
-  isBigTicket,
-  validarEntrada,
-  calcDTI,
-  calcMargemManobra,
   calcCustoOcultoVeiculo,
-  validarVeiculo,
-  calcNovoCustoFixoImovel,
-  validarImovel,
-  validarBigTicket,
-  calcTempoEsperaLazer,
-  isLazerBloqueado,
-  isPermitidoFerramenta,
-  calcCustoMensalVeiculo,
-  validarCompraVeiculo,
-  calcCustoEfetivoImovel,
-  validarCompraImovel,
-  validarEntradaMinima,
-  resolverTipoCompra,
   calcProjecaoPatrimonio,
   calcImpactoCompraNoPatrimonio,
   calcMesesParaMeta,

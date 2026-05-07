@@ -16,13 +16,13 @@ describe('calcLazerPct — distribuição dos envelopes', () => {
   })
 
   it('envelopes reduzem o lazer além do custo de vida', () => {
-    const envelopes = [{ nome: 'Igreja', pct: 15 }, { nome: 'Investimentos', pct: 20 }]
+    const envelopes = [{ id: 1, nome: 'Igreja', pct: 15 }, { id: 2, nome: 'Investimentos', pct: 20 }]
     // custo 2000/15000 = 13.33%, envelopes 35% → lazer = 51.67%
     expect(calcLazerPct(15000, 2000, envelopes)).toBeCloseTo(51.67, 1)
   })
 
   it('lazer nunca é negativo mesmo quando envelopes excedem 100%', () => {
-    const envelopes = [{ nome: 'Tudo', pct: 95 }]
+    const envelopes = [{ id: 1, nome: 'Tudo', pct: 95 }]
     expect(calcLazerPct(3000, 2000, envelopes)).toBe(0)
   })
 

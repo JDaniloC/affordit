@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Cenario, AppState, TipoCompra, Meta } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
-import { calcRoiAprovacao, selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem, calcValorDepreciado } from '../logic/index'
+import { selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem, calcValorDepreciado } from '../logic/index'
 import SonhoSection from '../components/SonhoSection'
 import EstrategiaSection from '../components/EstrategiaSection'
 import ResultadoSection from '../components/ResultadoSection'
@@ -184,7 +184,6 @@ export default function CenariosPage(props: Props) {
 
   const r = calcularResultadoCenario(perfil, cenario)
   const ferramenta = cenario.tipoCompra === 'ferramenta'
-  const roiOk = calcRoiAprovacao(r.statusPatrimonio.statusAtual, ferramenta)
   const criterio = selectCriterioAuto(perfil.patrimonio, cenario.itemValor)
   const custoFinanciamentoLive =
     cenario.taxaJuros > 0 && cenario.parcelas > 1
@@ -292,7 +291,6 @@ export default function CenariosPage(props: Props) {
               criterio={criterio}
               fluxo={r.fluxo}
               patrim={r.statusPatrimonio}
-              roiOk={roiOk}
               ferramenta={ferramenta}
               renda={perfil.renda}
               custo={perfil.custo}

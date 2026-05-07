@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   calcFluxoCaixa,
   calcStatusPatrimonio,
-  calcRoiAprovacao,
   selectCriterioAuto,
 } from '../src/logic/index.ts'
 
@@ -140,32 +139,6 @@ describe('Patrimônio — regra do 1% (risco zero)', () => {
   })
   it('patrimônio zero → nunca é risco zero', () => {
     expect(calcStatusPatrimonio(0, 2000, 100).dentro1pct).toBe(false)
-  })
-})
-
-// ===========================================================
-// ESTRATÉGIA 3: ROI PROFISSIONAL
-// Ferramenta: permite compra em GREEN ou YELLOW, bloqueia em RED.
-// Não-ferramenta: este critério não se aplica.
-// ===========================================================
-
-describe('ROI Profissional — ferramentas de trabalho', () => {
-  it('ferramenta em GREEN → aprovado', () => {
-    expect(calcRoiAprovacao('green', true)).toBe(true)
-  })
-  it('ferramenta em YELLOW → aprovado (alavancagem permitida)', () => {
-    expect(calcRoiAprovacao('yellow', true)).toBe(true)
-  })
-  it('ferramenta em RED → bloqueado (risco alto demais)', () => {
-    expect(calcRoiAprovacao('red', true)).toBe(false)
-  })
-})
-
-describe('ROI Profissional — itens de consumo', () => {
-  it('não-ferramenta em qualquer status → ROI não se aplica', () => {
-    expect(calcRoiAprovacao('green', false)).toBe(false)
-    expect(calcRoiAprovacao('yellow', false)).toBe(false)
-    expect(calcRoiAprovacao('red', false)).toBe(false)
   })
 })
 

@@ -15,34 +15,6 @@ export interface Meta {
   valor: number
 }
 
-// ============================================================
-// V1 — esquema legado, usado apenas pela migração
-// ============================================================
-export interface AppStateV1 {
-  envelopes: Envelope[]
-  reservaMeses: number
-  renda: number
-  custo: number
-  patrimonio: number
-  metaValor: number
-  itemNome: string
-  itemValor: number
-  ferramenta: boolean
-  criterio: Criterio
-  parcelas: number
-  tipoCompra: TipoCompra
-  manutencaoMensal: number
-  entradaValor: number
-  despesaSubstituida: number
-  taxaJuros: number
-  parcelasExistentes: number
-  rendimentoAnual: number
-  metas: Meta[]
-}
-
-// ============================================================
-// V2 — esquema novo
-// ============================================================
 export interface PerfilFinanceiro {
   renda: number
   custo: number

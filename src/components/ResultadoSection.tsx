@@ -32,7 +32,6 @@ interface Props {
   criterio: Criterio
   fluxo: FluxoCaixaResult
   patrim: StatusPatrimonioResult
-  roiOk: boolean
   ferramenta: boolean
   renda: number
   custo: number
@@ -332,7 +331,6 @@ export default function ResultadoSection({
   criterio,
   fluxo,
   patrim,
-  roiOk,
   ferramenta,
   renda,
   custo,
