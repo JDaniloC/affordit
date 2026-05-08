@@ -1,3 +1,27 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline do veredito (entry único: `calcularResultadoCenario`)
+//
+//   custoEfetivo = custo - reducaoHipotetica   (P2.7, default 0)
+//        │
+//        ▼
+//   simularLogica          → veredito base (aprovado/juntar/negado) + debug
+//        │
+//        ├── calcFluxoCaixa, calcStatusPatrimonio, calcCustoComJuros
+//        ├── validarPassivoAltoValor    (só se tipoCompra === 'passivoAltoValor')
+//        ├── calcImpactoMetaFinanceira  (só se metaValor > 0)
+//        ├── calcScoreSaude
+//        └── calcRiscoPatrimonio        → tier (verde/amarelo/laranja/vermelho)
+//                                           com motivos[]
+//        ▼
+//   compoeVeredito(veredito, risco)    → REBAIXA o veredito se o tier exigir.
+//                                          Nunca promove. (Ciclo 0/A/G:
+//                                          default "ainda não".)
+//
+// Campos `Cenario.inflacaoAnual` e `Cenario.taxaDepreciacaoAnual` NÃO entram
+// no pipeline — são display-only, consumidos por InflacaoCard/DepreciacaoCard
+// em CenariosPage como contexto educativo.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import {
   simularLogica,
   calcFluxoCaixa,
