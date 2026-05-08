@@ -55,11 +55,13 @@ export default function App() {
       return { estado: compartilhado, fromShare: true }
     }
     const loaded = loadAppState()
-    if (loaded.cenarios.length === 0 && !loaded.onboardingConcluido) {
+    // Sempre garantir um cenário ativo — InicioPage edita o cenário ativo,
+    // então não pode haver fluxo sem um.
+    if (loaded.cenarios.length === 0) {
       const c = cenarioVazio()
       return { estado: { ...loaded, cenarios: [c], cenarioAtivoId: c.id }, fromShare: false }
     }
-    if (loaded.cenarios.length > 0 && !loaded.cenarioAtivoId) {
+    if (!loaded.cenarioAtivoId) {
       return { estado: { ...loaded, cenarioAtivoId: loaded.cenarios[0].id }, fromShare: false }
     }
     return { estado: loaded, fromShare: false }
@@ -280,10 +282,12 @@ export default function App() {
     window.location.hash = ''
   }
 
-  // ----- SHELL MODE -----
-  if (state.onboardingConcluido) {
-    return (
-      <AppShell
+  // ----- SHELL MODE (sempre) -----
+  // Wizard mode foi descontinuado em favor da rota /inicio. O bloco abaixo
+  // (chartPanel + return com StepperNav etc.) virou dead code e será apagado
+  // num próximo commit.
+  return (
+    <AppShell
         state={state}
         cenario={cenario}
         setPerfil={setPerfil}
@@ -314,10 +318,9 @@ export default function App() {
         vindoDeCompartilhamento={vindoDeCompartilhamento}
         onDispensarBannerCompartilhamento={() => setVindoDeCompartilhamento(false)}
       />
-    )
-  }
+  )
 
-  // ----- WIZARD MODE -----
+  // ----- WIZARD MODE (DEAD — não atinge mais) -----
   const chartPanel = (
     <div className="step-chart-panel">
       {step === 1 && (

@@ -58,9 +58,9 @@ describe('AppShell', () => {
     window.location.hash = ''
   })
 
-  it('renderiza Perfil quando hash está vazio', () => {
+  it('renderiza Início quando hash está vazio', () => {
     render(<AppShell {...propsCommon} />)
-    expect(screen.getByRole('heading', { name: /perfil financeiro/i })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /posso comprar/i })).toBeTruthy()
   })
 
   it('renderiza Cenários quando hash é #/cenarios', async () => {

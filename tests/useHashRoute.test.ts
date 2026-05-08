@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { parseHash, formatHash } from '../src/hooks/useHashRoute.ts'
 
 describe('parseHash', () => {
-  it('retorna path "perfil" como default quando hash é vazio', () => {
-    expect(parseHash('')).toEqual({ path: 'perfil', params: {} })
-    expect(parseHash('#')).toEqual({ path: 'perfil', params: {} })
+  it('retorna path "inicio" como default quando hash é vazio', () => {
+    expect(parseHash('')).toEqual({ path: 'inicio', params: {} })
+    expect(parseHash('#')).toEqual({ path: 'inicio', params: {} })
   })
 
   it('parseia path simples', () => {
@@ -27,8 +27,8 @@ describe('parseHash', () => {
     })
   })
 
-  it('rejeita paths desconhecidos e cai em "perfil"', () => {
-    expect(parseHash('#/banana')).toEqual({ path: 'perfil', params: {} })
+  it('rejeita paths desconhecidos e cai em "inicio"', () => {
+    expect(parseHash('#/banana')).toEqual({ path: 'inicio', params: {} })
   })
 
   it('decodifica componentes URL', () => {

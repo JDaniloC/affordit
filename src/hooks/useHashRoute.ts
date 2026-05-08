@@ -10,14 +10,14 @@ export interface Route {
 }
 
 export function parseHash(hash: string): Route {
-  // Remove leading "#" and "/"; if empty, default to perfil
+  // Remove leading "#" and "/"; if empty, default to inicio
   const cleaned = hash.replace(/^#\/?/, '')
-  if (!cleaned) return { path: 'perfil', params: {} }
+  if (!cleaned) return { path: 'inicio', params: {} }
 
   const [pathPart, queryPart = ''] = cleaned.split('?')
   const path: RoutePath = (VALID_PATHS as string[]).includes(pathPart)
     ? (pathPart as RoutePath)
-    : 'perfil'
+    : 'inicio'
 
   const params: Record<string, string> = {}
   if (queryPart) {
