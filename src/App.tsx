@@ -126,13 +126,8 @@ export default function App() {
     }))
   const setMetas = (next: Meta[]) => setState(s => ({ ...s, metas: next }))
 
-  const setRenda = (v: number) => setPerfil({ renda: v })
-  const setCusto = (v: number) => setPerfil({ custo: v })
-  const setPatrimonio = (v: number) => setPerfil({ patrimonio: v })
-  const setReservaMeses = (v: number) => setPerfil({ reservaMeses: v })
   // Envelopes setter accepts both forms because ConfigSection uses
   // React.Dispatch<SetStateAction<Envelope[]>> (functional updates).
-  // All other perfil setters use simple value-replace via setPerfil.
   const setEnvelopes = (v: Envelope[] | ((prev: Envelope[]) => Envelope[])) =>
     setState(s => ({
       ...s,
@@ -141,18 +136,6 @@ export default function App() {
         envelopes: typeof v === 'function' ? v(s.perfil.envelopes) : v,
       },
     }))
-  const setParcelasExistentes = (v: number) => setPerfil({ parcelasExistentes: v })
-  const setRendimentoAnual = (v: number) => setPerfil({ rendimentoAnual: v })
-  const setMetaValor = (v: number) => setPerfil({ metaValor: v })
-  const setReducaoHipotetica = (v: number) => setPerfil({ reducaoHipotetica: v })
-  const setItemNome = (v: string) => setCenario({ itemNome: v })
-  const setItemValor = (v: number) => setCenario({ itemValor: v })
-  const setTipoCompra = (v: TipoCompra) => setCenario({ tipoCompra: v })
-  const setParcelas = (v: number) => setCenario({ parcelas: v })
-  const setTaxaJuros = (v: number) => setCenario({ taxaJuros: v })
-  const setManutencaoMensal = (v: number) => setCenario({ manutencaoMensal: v })
-  const setEntradaValor = (v: number) => setCenario({ entradaValor: v })
-  const setDespesaSubstituida = (v: number) => setCenario({ despesaSubstituida: v })
 
   const setCenarioAtivoId = (id: string) =>
     setState(s => ({ ...s, cenarioAtivoId: id }))
@@ -391,42 +374,42 @@ export default function App() {
             {step === 1 && (
               <ConfigSection
                 renda={renda}
-                onRendaChange={setRenda}
+                onRendaChange={v => setPerfil({ renda: v })}
                 custo={custo}
-                onCustoChange={setCusto}
+                onCustoChange={v => setPerfil({ custo: v })}
                 envelopes={envelopes}
                 onEnvelopesChange={setEnvelopes}
                 parcelasExistentes={parcelasExistentes}
-                onParcelasExistentesChange={setParcelasExistentes}
+                onParcelasExistentesChange={v => setPerfil({ parcelasExistentes: v })}
               />
             )}
             {step === 2 && (
               <RealidadeSection
                 patrimonio={patrimonio}
-                onPatrimonioChange={setPatrimonio}
+                onPatrimonioChange={v => setPerfil({ patrimonio: v })}
                 reservaMeses={reservaMeses}
-                onReservaMesesChange={setReservaMeses}
+                onReservaMesesChange={v => setPerfil({ reservaMeses: v })}
                 metaValor={metaValor}
-                onMetaValorChange={setMetaValor}
+                onMetaValorChange={v => setPerfil({ metaValor: v })}
                 rendimentoAnual={rendimentoAnual}
-                onRendimentoAnualChange={setRendimentoAnual}
+                onRendimentoAnualChange={v => setPerfil({ rendimentoAnual: v })}
                 scoreSaude={scoreSaude}
               />
             )}
             {step === 3 && (
               <SonhoSection
                 itemNome={itemNome}
-                onItemNomeChange={setItemNome}
+                onItemNomeChange={v => setCenario({ itemNome: v })}
                 itemValor={itemValor}
-                onItemValorChange={setItemValor}
+                onItemValorChange={v => setCenario({ itemValor: v })}
                 tipoCompra={tipoCompra}
-                onTipoCompraChange={setTipoCompra}
+                onTipoCompraChange={v => setCenario({ tipoCompra: v })}
                 manutencaoMensal={manutencaoMensal}
-                onManutencaoMensalChange={setManutencaoMensal}
+                onManutencaoMensalChange={v => setCenario({ manutencaoMensal: v })}
                 entradaValor={entradaValor}
-                onEntradaValorChange={setEntradaValor}
+                onEntradaValorChange={v => setCenario({ entradaValor: v })}
                 despesaSubstituida={despesaSubstituida}
-                onDespesaSubstituida={setDespesaSubstituida}
+                onDespesaSubstituida={v => setCenario({ despesaSubstituida: v })}
               />
             )}
             {step === 4 && (
@@ -435,9 +418,9 @@ export default function App() {
                 patrimonio={patrimonio}
                 itemValor={itemValor}
                 parcelas={parcelas}
-                onParcelasChange={setParcelas}
+                onParcelasChange={v => setCenario({ parcelas: v })}
                 taxaJuros={taxaJuros}
-                onTaxaJurosChange={setTaxaJuros}
+                onTaxaJurosChange={v => setCenario({ taxaJuros: v })}
                 custoFinanciamento={custoFinanciamentoLive}
               />
             )}
