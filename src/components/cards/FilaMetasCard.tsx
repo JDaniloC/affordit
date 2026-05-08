@@ -62,6 +62,12 @@ export default function FilaMetasCard({
         Você tem <strong>{metas.length}</strong> meta{metas.length === 1 ? '' : 's'} cadastrada
         {metas.length === 1 ? '' : 's'} antes desta compra.
       </p>
+      <p className="card-fila-aviso-otimista">
+        ⚡ <strong>Estimativa otimista:</strong> esta projeção assume que toda a sobra mensal
+        vai para a próxima meta da fila (FIFO), sem aplicar limites de saúde como
+        Regra do 1%, atraso máximo da meta de patrimônio ou piso do plano de crescimento.
+        Para a projeção realista com essas regras, abra o <strong>Planejador</strong>.
+      </p>
 
       <div className="card-fila-hipotese">
         <h4>Hipótese A — Comprar agora (pular a fila)</h4>

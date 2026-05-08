@@ -2170,6 +2170,21 @@ footer {
   margin-bottom: 12px;
 }
 
+.card-fila-aviso-otimista {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.card-fila-aviso-otimista strong {
+  color: var(--text);
+}
+
 .card-fila-hipotese {
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.03);
