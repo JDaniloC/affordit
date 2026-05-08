@@ -1,9 +1,11 @@
 import React from 'react'
-import type { AppState, Cenario } from '../types'
+import type { AppState, Cenario, TipoCompra } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
-import { selectCriterioAuto } from '../logic/index'
+import { selectCriterioAuto, calcCustoOcultoVeiculo } from '../logic/index'
 import NumericInput from '../components/NumericInput'
 import ResultadoSection from '../components/ResultadoSection'
+import ChartDistribuicao from '../components/ChartDistribuicao'
+import ChartPrazoVivo from '../components/ChartPrazoVivo'
 
 interface Props {
   perfil: AppState['perfil']
@@ -93,7 +95,172 @@ export default function InicioPage({
             />
           </div>
         </div>
+        <div className="field">
+          <label htmlFor="inicio-custo">Custo de vida mensal <span className="hint-inline">(opcional)</span></label>
+          <div className="input-group">
+            <span className="unit prefix">R$</span>
+            <NumericInput
+              id="inicio-custo"
+              value={perfil.custo}
+              onChange={v => onPerfilChange({ custo: v })}
+              placeholder="0,00"
+            />
+          </div>
+          <p className="field-hint">
+            Define a reserva-alvo ({perfil.reservaMeses} meses) e o que sobra para juntar.
+          </p>
+        </div>
+        <div className="field">
+          <label htmlFor="inicio-patrimonio">Patrimônio guardado <span className="hint-inline">(opcional)</span></label>
+          <div className="input-group">
+            <span className="unit prefix">R$</span>
+            <NumericInput
+              id="inicio-patrimonio"
+              value={perfil.patrimonio}
+              onChange={v => onPerfilChange({ patrimonio: v })}
+              placeholder="0,00"
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="inicio-parcelas-existentes">
+            Parcelas mensais em andamento <span className="hint-inline">(opcional)</span>
+          </label>
+          <div className="input-group">
+            <span className="unit prefix">R$</span>
+            <NumericInput
+              id="inicio-parcelas-existentes"
+              value={perfil.parcelasExistentes}
+              onChange={v => onPerfilChange({ parcelasExistentes: v })}
+              placeholder="0,00"
+            />
+          </div>
+        </div>
       </section>
+
+      {temItem && (
+        <section className="card">
+          <h2>3. Detalhes da compra <span className="hint-inline">(opcional)</span></h2>
+          <div className="field">
+            <label>Tipo de compra</label>
+            <div className="tipo-compra-grid">
+              {(
+                [
+                  { value: 'lazer', label: 'Lazer / Consumo', icon: '🛍️' },
+                  { value: 'ferramenta', label: 'Ferramenta de Trabalho', icon: '🔧' },
+                  { value: 'passivoAltoValor', label: 'Passivo de Alto Valor', icon: '🏠' },
+                ] as Array<{ value: TipoCompra; label: string; icon: string }>
+              ).map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  className={`tipo-compra-btn${cenario.tipoCompra === t.value ? ' tipo-compra-btn--active' : ''}`}
+                  onClick={() => onCenarioChange({ tipoCompra: t.value })}
+                >
+                  <span className="tipo-icon">{t.icon}</span>
+                  <span className="tipo-label">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="inicio-parcelas">Quantas vezes parcelado</label>
+            <div className="input-group">
+              <NumericInput
+                id="inicio-parcelas"
+                value={cenario.parcelas}
+                onChange={v => onCenarioChange({ parcelas: Math.max(1, Math.round(v)) })}
+                min={1}
+                step={1}
+                placeholder="1"
+                defaultValue={1}
+              />
+              <span className="unit">x</span>
+            </div>
+          </div>
+
+          {cenario.parcelas > 1 && (
+            <div className="field">
+              <label htmlFor="inicio-juros">
+                Taxa de juros mensal <span className="hint-inline">(opcional)</span>
+              </label>
+              <div className="input-group">
+                <NumericInput
+                  id="inicio-juros"
+                  value={cenario.taxaJuros}
+                  onChange={v => onCenarioChange({ taxaJuros: v })}
+                  min={0}
+                  step={0.1}
+                  placeholder="0"
+                />
+                <span className="unit">% a.m.</span>
+              </div>
+            </div>
+          )}
+
+          {cenario.tipoCompra === 'passivoAltoValor' && (
+            <div className="passivo-fields">
+              <p className="passivo-intro">
+                Passivos de alto valor têm custos mensais além da parcela.
+              </p>
+
+              <div className="field">
+                <label htmlFor="inicio-manutencao">Custos mensais do bem</label>
+                <div className="input-group">
+                  <span className="unit prefix">R$</span>
+                  <NumericInput
+                    id="inicio-manutencao"
+                    value={cenario.manutencaoMensal}
+                    onChange={v => onCenarioChange({ manutencaoMensal: v })}
+                    placeholder="0,00"
+                  />
+                </div>
+                {cenario.itemValor > 0 && (
+                  <button
+                    type="button"
+                    className="btn-sugerir-custo"
+                    onClick={() =>
+                      onCenarioChange({ manutencaoMensal: calcCustoOcultoVeiculo(cenario.itemValor) })
+                    }
+                  >
+                    💡 Sugerir 1% do valor (R$ {calcCustoOcultoVeiculo(cenario.itemValor).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês)
+                  </button>
+                )}
+              </div>
+
+              <div className="field">
+                <label htmlFor="inicio-entrada">Entrada</label>
+                <div className="input-group">
+                  <span className="unit prefix">R$</span>
+                  <NumericInput
+                    id="inicio-entrada"
+                    value={cenario.entradaValor}
+                    onChange={v => onCenarioChange({ entradaValor: v })}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+
+              <div className="field">
+                <label htmlFor="inicio-despesa-substituida">Despesa substituída por mês</label>
+                <div className="input-group">
+                  <span className="unit prefix">R$</span>
+                  <NumericInput
+                    id="inicio-despesa-substituida"
+                    value={cenario.despesaSubstituida}
+                    onChange={v => onCenarioChange({ despesaSubstituida: v })}
+                    placeholder="0,00"
+                  />
+                </div>
+                <p className="field-hint">
+                  Aluguel atual (se for comprar imóvel), Uber mensal (se for comprar carro).
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {!podeMostrarVeredito && (
         <section className="card resultado-placeholder">
@@ -108,6 +275,26 @@ export default function InicioPage({
               <>Falta o <strong>item</strong> que você quer comprar.</>
             )}
           </p>
+        </section>
+      )}
+
+      {temRenda && perfil.envelopes.length > 0 && (
+        <section className="card">
+          <h3>Distribuição da renda</h3>
+          <ChartDistribuicao renda={perfil.renda} custo={perfil.custo} envelopes={perfil.envelopes} />
+        </section>
+      )}
+
+      {podeMostrarVeredito && (
+        <section className="card">
+          <h3>Caminho até a compra</h3>
+          <ChartPrazoVivo
+            itemValor={cenario.itemValor}
+            itemNome={cenario.itemNome.trim() || 'o item'}
+            patrimonio={perfil.patrimonio}
+            sobraLazerMensal={r?.sobraLazerMensal ?? 0}
+            parcelas={cenario.parcelas}
+          />
         </section>
       )}
 
