@@ -1,28 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
-const logoUrl = import.meta.env.BASE_URL + 'logo.png'
-import { AppState, Cenario, Envelope, Meta, TipoCompra } from './types'
+import { AppState, Cenario, Envelope, Meta } from './types'
 import { loadAppState, saveAppState } from './state/storage'
 import { tryDecodeShareFromUrl, clearShareParamFromUrl } from './state/share'
-import {
-  calcLazerPct,
-  selectCriterioAuto,
-  calcCustoComJuros,
-  calcScoreSaude,
-} from './logic/index'
+import { calcLazerPct, calcScoreSaude } from './logic/index'
 import { gerarId } from './utils/id'
 import { formatHash } from './hooks/useHashRoute'
 import AppShell from './components/AppShell'
-import ConfigSection from './components/ConfigSection'
-import RealidadeSection from './components/RealidadeSection'
-import SonhoSection from './components/SonhoSection'
-import EstrategiaSection from './components/EstrategiaSection'
-import StepperNav from './components/StepperNav'
-import StepperActions from './components/StepperActions'
-import ChartDistribuicao from './components/ChartDistribuicao'
-import ChartReservaViva from './components/ChartReservaViva'
-import ChartPrazoVivo from './components/ChartPrazoVivo'
-import ResumoStep4 from './components/ResumoStep4'
 
 function cenarioVazio(): Cenario {
   const agora = Date.now()
@@ -46,8 +30,6 @@ function cenarioVazio(): Cenario {
 
 export default function App() {
   // Boot: prioridade para estado compartilhado via URL, depois localStorage.
-  // Lazy init via useState para rodar uma única vez. Capturamos o flag antes
-  // de limpar a URL para que o banner saiba que veio de URL compartilhada.
   const [bootInicial] = useState(() => {
     const compartilhado = tryDecodeShareFromUrl()
     if (compartilhado) {
@@ -55,8 +37,7 @@ export default function App() {
       return { estado: compartilhado, fromShare: true }
     }
     const loaded = loadAppState()
-    // Sempre garantir um cenário ativo — InicioPage edita o cenário ativo,
-    // então não pode haver fluxo sem um.
+    // Sempre garantir um cenário ativo — InicioPage edita o cenário ativo.
     if (loaded.cenarios.length === 0) {
       const c = cenarioVazio()
       return { estado: { ...loaded, cenarios: [c], cenarioAtivoId: c.id }, fromShare: false }
@@ -71,18 +52,12 @@ export default function App() {
     bootInicial.fromShare,
   )
 
-  const [erro, setErro] = useState<string | null>(null)
-  const [step, setStep] = useState<number>(1)
-  const [direction, setDirection] = useState<'forward' | 'back'>('forward')
-
-  // Cenário ativo (pode ser null quando cenarios.length === 0 em shell mode)
   const cenario = useMemo<Cenario | null>(() => {
     if (state.cenarios.length === 0) return null
     const c = state.cenarios.find(c => c.id === state.cenarioAtivoId)
     return c ?? state.cenarios[0]
   }, [state.cenarios, state.cenarioAtivoId])
 
-  // Persistência
   useEffect(() => {
     saveAppState(state)
   }, [state])
@@ -96,27 +71,6 @@ export default function App() {
     }
   }, [state.cenarios, state.cenarioAtivoId])
 
-  // ========== Aliases ==========
-  const renda = state.perfil.renda
-  const custo = state.perfil.custo
-  const patrimonio = state.perfil.patrimonio
-  const reservaMeses = state.perfil.reservaMeses
-  const envelopes = state.perfil.envelopes
-  const parcelasExistentes = state.perfil.parcelasExistentes
-  const rendimentoAnual = state.perfil.rendimentoAnual
-  const metaValor = state.perfil.metaValor
-  const reducaoHipotetica = state.perfil.reducaoHipotetica
-  const metas = state.metas
-  const itemNome = cenario?.itemNome ?? ''
-  const itemValor = cenario?.itemValor ?? 0
-  const tipoCompra = cenario?.tipoCompra ?? 'lazer'
-  const parcelas = cenario?.parcelas ?? 1
-  const taxaJuros = cenario?.taxaJuros ?? 0
-  const manutencaoMensal = cenario?.manutencaoMensal ?? 0
-  const entradaValor = cenario?.entradaValor ?? 0
-  const despesaSubstituida = cenario?.despesaSubstituida ?? 0
-
-  // ========== Setters ==========
   const setPerfil = (patch: Partial<AppState['perfil']>) =>
     setState(s => ({ ...s, perfil: { ...s.perfil, ...patch } }))
   const setCenario = (patch: Partial<Cenario>) =>
@@ -128,7 +82,7 @@ export default function App() {
     }))
   const setMetas = (next: Meta[]) => setState(s => ({ ...s, metas: next }))
 
-  // Envelopes setter accepts both forms because ConfigSection uses
+  // Envelopes setter aceita ambas as formas porque ConfigSection usa
   // React.Dispatch<SetStateAction<Envelope[]>> (functional updates).
   const setEnvelopes = (v: Envelope[] | ((prev: Envelope[]) => Envelope[])) =>
     setState(s => ({
@@ -187,34 +141,19 @@ export default function App() {
     })
   }
 
-  const criterioAuto = useMemo(
-    () => selectCriterioAuto(patrimonio, itemValor),
-    [patrimonio, itemValor],
-  )
+  const { renda, custo, patrimonio, reservaMeses, envelopes, parcelasExistentes,
+    rendimentoAnual, reducaoHipotetica } = state.perfil
 
-  // P2.7 — custo efetivo com a redução hipotética aplicada (default 0 = sem efeito)
   const custoEfetivo = useMemo(
-    () => Math.max(0, custo - state.perfil.reducaoHipotetica),
-    [custo, state.perfil.reducaoHipotetica],
+    () => Math.max(0, custo - reducaoHipotetica),
+    [custo, reducaoHipotetica],
   )
 
   const sobraLazerMensal = useMemo(
-    () => Math.max(0, (calcLazerPct(renda, custoEfetivo, envelopes) / 100) * renda - parcelasExistentes),
+    () =>
+      Math.max(0, (calcLazerPct(renda, custoEfetivo, envelopes) / 100) * renda - parcelasExistentes),
     [renda, custoEfetivo, envelopes, parcelasExistentes],
   )
-
-  const custoFinanciamentoLive = useMemo(
-    () =>
-      taxaJuros > 0 && parcelas > 1
-        ? calcCustoComJuros(itemValor, parcelas, taxaJuros)
-        : null,
-    [itemValor, parcelas, taxaJuros],
-  )
-
-  const parcelaEfetiva = useMemo(() => {
-    if (custoFinanciamentoLive) return custoFinanciamentoLive.parcelaValor
-    return parcelas > 1 ? itemValor / parcelas : itemValor
-  }, [custoFinanciamentoLive, itemValor, parcelas])
 
   const rendimentoMensalEfetivo = useMemo(
     () =>
@@ -228,213 +167,44 @@ export default function App() {
     [renda, custo, patrimonio, reservaMeses, parcelasExistentes, envelopes],
   )
 
-  function simular() {
-    if (renda <= 0) {
-      setErro('Informe sua renda líquida mensal.')
-      return
-    }
-    if (itemValor <= 0) {
-      setErro('Informe o valor do item desejado.')
-      return
-    }
-    setErro(null)
-    setState(s => ({ ...s, onboardingConcluido: true }))
-    window.location.hash = formatHash('cenarios')
-  }
-
-  function goNext() {
-    setErro(null)
-    if (step === 1 && renda <= 0) {
-      setErro('Informe sua renda líquida mensal.')
-      return
-    }
-    if (step === 3 && itemValor <= 0) {
-      setErro('Informe o valor do item desejado.')
-      return
-    }
-    if (step === 4) {
-      if (renda <= 0) {
-        setErro('Informe sua renda líquida mensal.')
-        return
-      }
-      if (itemValor <= 0) {
-        setErro('Informe o valor do item desejado.')
-        return
-      }
-      simular()
-      setDirection('forward')
-      // DO NOT setStep(5) — shell takes over after onboardingConcluido=true
-      return
-    }
-    setDirection('forward')
-    setStep(s => s + 1)
-  }
-
-  function goBack() {
-    setErro(null)
-    setDirection('back')
-    setStep(s => Math.max(1, s - 1))
-  }
-
+  // "Refazer setup" zera renda do perfil e leva o usuário para /inicio.
+  // O wizard de 4 passos foi removido; agora a tela única faz onboarding.
   function refazerSetup() {
-    setState(s => ({ ...s, perfil: { ...s.perfil, renda: 0 }, onboardingConcluido: false }))
-    setStep(1)
-    window.location.hash = ''
+    setState(s => ({ ...s, perfil: { ...s.perfil, renda: 0 } }))
+    window.location.hash = formatHash('inicio')
   }
 
-  // ----- SHELL MODE (sempre) -----
-  // Wizard mode foi descontinuado em favor da rota /inicio. O bloco abaixo
-  // (chartPanel + return com StepperNav etc.) virou dead code e será apagado
-  // num próximo commit.
   return (
     <AppShell
-        state={state}
-        cenario={cenario}
-        setPerfil={setPerfil}
-        setCenario={setCenario}
-        setMetas={setMetas}
-        setEnvelopes={setEnvelopes}
-        scoreSaude={scoreSaude}
-        sobraLazerMensal={sobraLazerMensal}
-        rendimentoMensalEfetivo={rendimentoMensalEfetivo}
-        setCenarioAtivoId={setCenarioAtivoId}
-        criarCenarioVazio={criarCenarioVazio}
-        duplicarCenarioAtivo={duplicarCenarioAtivo}
-        excluirCenario={excluirCenario}
-        onAdicionarItemAFila={() => {
-          if (!cenario) return
-          const id = state.metas.reduce((m, x) => Math.max(m, x.id), 0) + 1
-          setMetas([...state.metas, { id, nome: cenario.itemNome, valor: cenario.itemValor }])
-        }}
-        onAbrirMetas={() => {
-          window.location.hash = formatHash('metas')
-        }}
-        onSimularMeta={m => {
-          if (!cenario) return
-          setCenario({ itemNome: m.nome, itemValor: m.valor, nome: m.nome })
-          window.location.hash = formatHash('cenarios', { id: cenario.id })
-        }}
-        onRefazerSetup={refazerSetup}
-        vindoDeCompartilhamento={vindoDeCompartilhamento}
-        onDispensarBannerCompartilhamento={() => setVindoDeCompartilhamento(false)}
-      />
-  )
-
-  // ----- WIZARD MODE (DEAD — não atinge mais) -----
-  const chartPanel = (
-    <div className="step-chart-panel">
-      {step === 1 && (
-        <ChartDistribuicao renda={renda} custo={custo} envelopes={envelopes} />
-      )}
-      {step === 2 && (
-        <ChartReservaViva
-          renda={renda}
-          custo={custo}
-          patrimonio={patrimonio}
-          reservaMeses={reservaMeses}
-          envelopes={envelopes}
-        />
-      )}
-      {step === 3 && (
-        <ChartPrazoVivo
-          itemValor={itemValor}
-          itemNome={itemNome || 'o item'}
-          patrimonio={patrimonio}
-          sobraLazerMensal={sobraLazerMensal}
-          parcelas={parcelas}
-        />
-      )}
-      {step === 4 && (
-        <ResumoStep4
-          itemValor={itemValor}
-          itemNome={itemNome || 'Item'}
-          parcelas={parcelas}
-          parcelaEfetiva={parcelaEfetiva}
-          sobraLazerMensal={sobraLazerMensal}
-          patrimonio={patrimonio}
-          custoFinanciamento={custoFinanciamentoLive}
-        />
-      )}
-    </div>
-  )
-
-  return (
-    <div id="app">
-      <header>
-        <img src={logoUrl} alt="AffordIT" className="wizard-logo" />
-        <h1>Posso Comprar?</h1>
-        <p className="subtitle">
-          Simule a viabilidade de uma compra com base nos seus envelopes financeiros.
-        </p>
-      </header>
-
-      <StepperNav currentStep={step} />
-
-      <main>
-        <div className={`step-layout step-slide-${direction}`} key={step}>
-          {chartPanel}
-          <div className="step-form-panel">
-            {step === 1 && (
-              <ConfigSection
-                renda={renda}
-                onRendaChange={v => setPerfil({ renda: v })}
-                custo={custo}
-                onCustoChange={v => setPerfil({ custo: v })}
-                envelopes={envelopes}
-                onEnvelopesChange={setEnvelopes}
-                parcelasExistentes={parcelasExistentes}
-                onParcelasExistentesChange={v => setPerfil({ parcelasExistentes: v })}
-              />
-            )}
-            {step === 2 && (
-              <RealidadeSection
-                patrimonio={patrimonio}
-                onPatrimonioChange={v => setPerfil({ patrimonio: v })}
-                reservaMeses={reservaMeses}
-                onReservaMesesChange={v => setPerfil({ reservaMeses: v })}
-                metaValor={metaValor}
-                onMetaValorChange={v => setPerfil({ metaValor: v })}
-                rendimentoAnual={rendimentoAnual}
-                onRendimentoAnualChange={v => setPerfil({ rendimentoAnual: v })}
-                scoreSaude={scoreSaude}
-              />
-            )}
-            {step === 3 && (
-              <SonhoSection
-                itemNome={itemNome}
-                onItemNomeChange={v => setCenario({ itemNome: v })}
-                itemValor={itemValor}
-                onItemValorChange={v => setCenario({ itemValor: v })}
-                tipoCompra={tipoCompra}
-                onTipoCompraChange={v => setCenario({ tipoCompra: v })}
-                manutencaoMensal={manutencaoMensal}
-                onManutencaoMensalChange={v => setCenario({ manutencaoMensal: v })}
-                entradaValor={entradaValor}
-                onEntradaValorChange={v => setCenario({ entradaValor: v })}
-                despesaSubstituida={despesaSubstituida}
-                onDespesaSubstituida={v => setCenario({ despesaSubstituida: v })}
-              />
-            )}
-            {step === 4 && (
-              <EstrategiaSection
-                criterioAuto={criterioAuto}
-                patrimonio={patrimonio}
-                itemValor={itemValor}
-                parcelas={parcelas}
-                onParcelasChange={v => setCenario({ parcelas: v })}
-                taxaJuros={taxaJuros}
-                onTaxaJurosChange={v => setCenario({ taxaJuros: v })}
-                custoFinanciamento={custoFinanciamentoLive}
-              />
-            )}
-            <StepperActions step={step} onBack={goBack} onNext={goNext} erro={erro} />
-          </div>
-        </div>
-      </main>
-
-      <footer>
-        <p>Seus dados são salvos localmente no seu navegador. Nenhuma informação é enviada.</p>
-      </footer>
-    </div>
+      state={state}
+      cenario={cenario}
+      setPerfil={setPerfil}
+      setCenario={setCenario}
+      setMetas={setMetas}
+      setEnvelopes={setEnvelopes}
+      scoreSaude={scoreSaude}
+      sobraLazerMensal={sobraLazerMensal}
+      rendimentoMensalEfetivo={rendimentoMensalEfetivo}
+      setCenarioAtivoId={setCenarioAtivoId}
+      criarCenarioVazio={criarCenarioVazio}
+      duplicarCenarioAtivo={duplicarCenarioAtivo}
+      excluirCenario={excluirCenario}
+      onAdicionarItemAFila={() => {
+        if (!cenario) return
+        const id = state.metas.reduce((m, x) => Math.max(m, x.id), 0) + 1
+        setMetas([...state.metas, { id, nome: cenario.itemNome, valor: cenario.itemValor }])
+      }}
+      onAbrirMetas={() => {
+        window.location.hash = formatHash('metas')
+      }}
+      onSimularMeta={m => {
+        if (!cenario) return
+        setCenario({ itemNome: m.nome, itemValor: m.valor, nome: m.nome })
+        window.location.hash = formatHash('cenarios', { id: cenario.id })
+      }}
+      onRefazerSetup={refazerSetup}
+      vindoDeCompartilhamento={vindoDeCompartilhamento}
+      onDispensarBannerCompartilhamento={() => setVindoDeCompartilhamento(false)}
+    />
   )
 }
