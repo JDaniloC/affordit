@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 
-export type RoutePath = 'perfil' | 'cenarios' | 'comparar' | 'metas'
+export type RoutePath = 'inicio' | 'perfil' | 'cenarios' | 'comparar' | 'metas'
 
-const VALID_PATHS: RoutePath[] = ['perfil', 'cenarios', 'comparar', 'metas']
+const VALID_PATHS: RoutePath[] = ['inicio', 'perfil', 'cenarios', 'comparar', 'metas']
 
 export interface Route {
   path: RoutePath

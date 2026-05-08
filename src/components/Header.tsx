@@ -19,6 +19,7 @@ interface Props {
 }
 
 const TABS: Array<{ id: RoutePath; label: string }> = [
+  { id: 'inicio', label: 'Início' },
   { id: 'perfil', label: 'Perfil' },
   { id: 'cenarios', label: 'Cenários' },
   { id: 'comparar', label: 'Comparar' },

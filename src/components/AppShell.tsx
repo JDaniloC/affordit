@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useHashRoute } from '../hooks/useHashRoute'
 import { AppState, Cenario, Meta } from '../types'
 import Header from './Header'
+import InicioPage from '../pages/InicioPage'
 import PerfilPage from '../pages/PerfilPage'
 import CenariosPage from '../pages/CenariosPage'
 import CompararPage from '../pages/CompararPage'
@@ -104,6 +105,19 @@ export default function AppShell(props: Props) {
       )}
 
       <main className="app-shell-main">
+        {route.path === 'inicio' && (
+          <InicioPage
+            perfil={props.state.perfil}
+            cenario={props.cenario}
+            metas={props.state.metas}
+            onPerfilChange={props.setPerfil}
+            onCenarioChange={props.setCenario}
+            onAdicionarItemAFila={props.onAdicionarItemAFila}
+            onAbrirPlanejador={() => navigate('metas')}
+            onAbrirShell={() => navigate('cenarios')}
+          />
+        )}
+
         {route.path === 'perfil' && (
           <PerfilPage
             renda={props.state.perfil.renda}
