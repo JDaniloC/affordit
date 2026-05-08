@@ -294,6 +294,7 @@ export default function CenariosPage(props: Props) {
               ferramenta={ferramenta}
               renda={perfil.renda}
               custo={perfil.custo}
+              reservaMeses={perfil.reservaMeses}
               patrimonio={perfil.patrimonio}
               itemValor={cenario.itemValor}
               itemNome={cenario.itemNome.trim() || 'Item'}

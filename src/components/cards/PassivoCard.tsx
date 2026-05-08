@@ -9,6 +9,7 @@ interface Props {
   passivoResult: ValidarPassivoAltoValorResult | null
   renda: number
   custo: number
+  reservaMeses: number
   itemValor: number
   parcelas: number
   manutencaoMensal: number
@@ -21,6 +22,7 @@ export default function PassivoCard({
   passivoResult,
   renda,
   custo,
+  reservaMeses,
   itemValor,
   parcelas,
   manutencaoMensal,
@@ -38,8 +40,8 @@ export default function PassivoCard({
           label="Entrada preserva a reserva"
           desc={
             passivoResult.passouEntrada
-              ? `Após a entrada de ${fmt(entradaValor)}, você mantém pelo menos 6 meses de custo de vida na reserva.`
-              : `A entrada de ${fmt(entradaValor)} reduziria sua reserva abaixo de 6 meses de custo (${fmt(custo * 6)}). Risco alto.`
+              ? `Após a entrada de ${fmt(entradaValor)}, você mantém pelo menos ${reservaMeses} ${reservaMeses === 1 ? 'mês' : 'meses'} de custo de vida na reserva.`
+              : `A entrada de ${fmt(entradaValor)} reduziria sua reserva abaixo de ${reservaMeses} ${reservaMeses === 1 ? 'mês' : 'meses'} de custo (${fmt(custo * reservaMeses)}). Risco alto.`
           }
         />
         <RegraItem

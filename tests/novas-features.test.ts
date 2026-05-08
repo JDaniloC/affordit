@@ -72,6 +72,7 @@ describe('validarPassivoAltoValor — checagem das 3 regras', () => {
     despesaSubstituida: 0,
     baldeLazer: 2_000,
     baldeInvestimento: 1_000,
+    reservaMeses: 6,
   }
 
   it('aprovado quando todas as três regras passam', () => {
@@ -141,6 +142,7 @@ describe('validarPassivoAltoValor — checagem das 3 regras', () => {
       despesaSubstituida: 2_000,
       baldeLazer: 1_500,
       baldeInvestimento: 500,
+      reservaMeses: 6,
     })
     expect(r.passouEntrada).toBe(true)
     expect(r.passouDTI).toBe(true)

@@ -306,6 +306,7 @@ export interface ValidarPassivoAltoValorParams {
   despesaSubstituida: number // despesa substituída pelo bem (ex: aluguel atual)
   baldeLazer: number         // sobra mensal de lazer
   baldeInvestimento: number  // soma dos envelopes de investimento em R$
+  reservaMeses: number       // alvo de reserva em meses (alinhado com perfil)
 }
 
 export interface ValidarPassivoAltoValorResult {
@@ -315,17 +316,23 @@ export interface ValidarPassivoAltoValorResult {
   aprovado: boolean
 }
 
+// Margem de manobra mínima após o novo custo fixo, em fração da renda.
+// Não há setting de UI para isso — é o piso para "vale a pena assumir o passivo".
+const MARGEM_MIN_PASSIVO_PCT = 0.05
+
 /**
  * Valida a viabilidade de um passivo de alto valor (carro, imóvel, equipamento caro).
- * Aplica as 3 regras: entrada preserva 6m de reserva, DTI agregado, margem ≥ 5% renda.
+ * Aplica as 3 regras: entrada preserva a reserva configurada do perfil, DTI agregado,
+ * margem ≥ 5% da renda após o novo custo fixo.
  */
 function validarPassivoAltoValor(p: ValidarPassivoAltoValorParams): ValidarPassivoAltoValorResult {
-  const passouEntrada = p.patrimonio - p.entrada >= p.custo * 6
+  const reservaAlvo = p.custo * p.reservaMeses
+  const passouEntrada = p.patrimonio - p.entrada >= reservaAlvo
   const passouDTI =
     p.parcela + p.manutencao - p.despesaSubstituida <= p.baldeLazer + p.baldeInvestimento
   const custoEfetivo = p.custo - p.despesaSubstituida
   const sobra = p.renda - custoEfetivo - p.parcela
-  const passouMargem = sobra >= p.renda * 0.05
+  const passouMargem = sobra >= p.renda * MARGEM_MIN_PASSIVO_PCT
   return {
     passouEntrada,
     passouDTI,

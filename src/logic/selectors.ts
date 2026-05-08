@@ -126,6 +126,7 @@ export function calcularResultadoCenario(
           despesaSubstituida: cenario.despesaSubstituida,
           baldeLazer: veredito.debug.sobraLazerMensal,
           baldeInvestimento: baldeInvestimentoR,
+          reservaMeses: perfil.reservaMeses,
         })
       : null
 

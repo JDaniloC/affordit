@@ -31,6 +31,7 @@ interface Props {
   ferramenta: boolean
   renda: number
   custo: number
+  reservaMeses: number
   patrimonio: number
   itemValor: number
   itemNome: string
@@ -59,6 +60,7 @@ export default function ResultadoSection({
   fluxo,
   renda,
   custo,
+  reservaMeses,
   patrimonio,
   itemValor,
   itemNome,
@@ -194,6 +196,7 @@ export default function ResultadoSection({
         passivoResult={passivoResult}
         renda={renda}
         custo={custo}
+        reservaMeses={reservaMeses}
         itemValor={itemValor}
         parcelas={parcelas}
         manutencaoMensal={manutencaoMensal}
