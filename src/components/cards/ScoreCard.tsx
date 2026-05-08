@@ -1,18 +1,13 @@
 import React from 'react'
-import type { ScoreSaudeResult, NivelSaude } from '../../logic/index'
+import type { ScoreSaudeResult } from '../../logic/index'
+import { NIVEL_VISUAL } from '../../utils/nivelSaude'
 
 interface Props {
   scoreSaude: ScoreSaudeResult
 }
 
-const NIVEL_CONFIG: Record<NivelSaude, { label: string; color: string }> = {
-  boa: { label: 'Boa', color: '#10b981' },
-  regular: { label: 'Regular', color: '#f59e0b' },
-  atencao: { label: 'Atenção', color: '#ef4444' },
-}
-
 export default function ScoreCard({ scoreSaude }: Props) {
-  const cfg = NIVEL_CONFIG[scoreSaude.nivel]
+  const cfg = NIVEL_VISUAL[scoreSaude.nivel]
   return (
     <div className="saude-resultado-card" style={{ borderColor: cfg.color + '44' }}>
       <div className="saude-resultado-header">

@@ -1,6 +1,7 @@
 import React from 'react'
 import NumericInput from './NumericInput'
-import { ScoreSaudeResult, NivelSaude } from '../logic/index'
+import { ScoreSaudeResult } from '../logic/index'
+import { NIVEL_VISUAL } from '../utils/nivelSaude'
 
 interface Props {
   patrimonio: number
@@ -14,12 +15,6 @@ interface Props {
   scoreSaude: ScoreSaudeResult
 }
 
-const NIVEL_CONFIG: Record<NivelSaude, { label: string; color: string; bg: string; border: string }> = {
-  boa:     { label: 'Boa',    color: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.25)' },
-  regular: { label: 'Regular', color: '#f59e0b', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.25)' },
-  atencao: { label: 'Atenção', color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.25)' },
-}
-
 export default function RealidadeSection({
   patrimonio,
   onPatrimonioChange,
@@ -31,7 +26,7 @@ export default function RealidadeSection({
   onRendimentoAnualChange,
   scoreSaude,
 }: Props) {
-  const cfg = NIVEL_CONFIG[scoreSaude.nivel]
+  const cfg = NIVEL_VISUAL[scoreSaude.nivel]
 
   return (
     <section className="card" id="section-realidade">
