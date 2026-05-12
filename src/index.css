@@ -3275,6 +3275,35 @@ footer {
   box-sizing: border-box;
 }
 
+/* ===== Página de Início (item-first) ===== */
+.page-inicio {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (min-width: 900px) {
+  /* Layout masonry-style: cards empilham verticalmente em cada coluna,
+     respeitando alturas diferentes sem deixar gaps verticais.
+     Ordem de leitura: top→bottom da coluna 1, depois coluna 2. */
+  .page-inicio {
+    column-count: 2;
+    column-gap: 16px;
+  }
+  .page-inicio > * {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Header, placeholder do veredito, ResultadoSection e footer ocupam
+     linha inteira (rompem a divisão de colunas). */
+  .page-inicio > .page-header,
+  .page-inicio > .resultado-placeholder,
+  .page-inicio > #section-resultado,
+  .page-inicio > .page-footer {
+    column-span: all;
+  }
+}
+
 .app-shell-footer {
   text-align: center;
   padding: 16px;
