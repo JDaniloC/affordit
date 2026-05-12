@@ -97,6 +97,7 @@ export function migrarV1ParaV2(raw: unknown): AppState {
     reservaMeses: num(rawPerfil, 'reservaMeses', 6),
     rendimentoAnual: num(rawPerfil, 'rendimentoAnual', 0),
     metaValor: num(rawPerfil, 'metaValor', 0),
+    compromissos: [],
   }
 
   // ── Metas ──

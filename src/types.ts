@@ -15,6 +15,15 @@ export interface Meta {
   valor: number
 }
 
+export interface Compromisso {
+  id: number
+  nome: string
+  parcela: number
+  prazo?: number          // meses restantes; undefined = recorrência
+  prazoTotal?: number     // total de parcelas (habilita barra de progresso)
+  taxa?: number           // % a.m.
+}
+
 export interface PerfilFinanceiro {
   renda: number
   custo: number
@@ -24,6 +33,7 @@ export interface PerfilFinanceiro {
   reservaMeses: number
   rendimentoAnual: number
   metaValor: number
+  compromissos: Compromisso[]
 }
 
 export interface Cenario {
@@ -74,6 +84,7 @@ export const PERFIL_VAZIO: PerfilFinanceiro = {
   reservaMeses: 6,
   rendimentoAnual: 0,
   metaValor: 0,
+  compromissos: [],
 }
 
 export const APP_STATE_VAZIO: AppState = {

@@ -11,6 +11,7 @@ const perfilBase: PerfilFinanceiro = {
   reservaMeses: 6,
   rendimentoAnual: 0,
   metaValor: 0,
+  compromissos: [],
 }
 
 const cenarioBase: Cenario = {
