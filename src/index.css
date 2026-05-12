@@ -3924,3 +3924,125 @@ footer {
   min-width: 32px;
   min-height: 32px;
 }
+
+/* ===== Compromissos (lista de dívidas/recorrências) ===== */
+.compromissos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compromissos-list-header h3 {
+  margin: 0 0 4px 0;
+}
+
+.compromissos-list-totais {
+  margin: 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.95em;
+}
+
+.compromissos-list-vazio {
+  padding: 16px;
+  text-align: center;
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 8px;
+}
+
+.compromissos-list-add {
+  align-self: flex-start;
+}
+
+.compromisso-card {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compromisso-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.compromisso-nome {
+  font-size: 1.05em;
+}
+
+.compromisso-parcela {
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.compromisso-progresso {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compromisso-progresso progress {
+  width: 100%;
+  height: 8px;
+}
+
+.compromisso-progresso-label {
+  font-size: 0.85em;
+  color: var(--text-muted, #6b7280);
+}
+
+.compromisso-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compromisso-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.1);
+  color: rgba(99, 102, 241, 1);
+  font-size: 0.85em;
+}
+
+.compromisso-badge--recorrente {
+  background: rgba(107, 114, 128, 0.1);
+  color: rgba(107, 114, 128, 1);
+}
+
+.compromisso-badge--taxa {
+  background: rgba(245, 158, 11, 0.12);
+  color: rgba(180, 83, 9, 1);
+}
+
+.compromisso-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.compromisso-btn {
+  background: none;
+  border: none;
+  color: var(--accent, #7c3aed);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.9em;
+}
+
+.compromisso-btn--danger {
+  color: var(--danger, #ef4444);
+}
+
+.compromisso-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compromisso-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

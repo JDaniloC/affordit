@@ -145,7 +145,7 @@ export default function App() {
   const { renda, custo, patrimonio, reservaMeses, envelopes, compromissos,
     rendimentoAnual } = state.perfil
 
-  const totalCompromissos = useMemo(() => somaCompromissos(state.perfil), [compromissos])
+  const totalCompromissos = useMemo(() => somaCompromissos(state.perfil), [state.perfil.compromissos])
 
   const sobraLazerMensal = useMemo(
     () =>

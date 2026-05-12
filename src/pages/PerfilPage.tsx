@@ -3,6 +3,7 @@ import { Envelope, Compromisso } from '../types'
 import { ScoreSaudeResult } from '../logic/index'
 import ConfigSection from '../components/ConfigSection'
 import RealidadeSection from '../components/RealidadeSection'
+import CompromissosList from '../components/CompromissosList'
 
 interface Props {
   renda: number
@@ -62,6 +63,14 @@ export default function PerfilPage(props: Props) {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="page-section" id="section-compromissos">
+        <CompromissosList
+          compromissos={props.compromissos}
+          renda={props.renda}
+          onChange={props.onCompromissosChange}
+        />
       </section>
 
       <section className="page-section">

@@ -55,10 +55,10 @@ export default function CompromissoCard({ compromisso, onEditar, onExcluir }: Pr
       </div>
 
       <div className="compromisso-card-actions">
-        <button type="button" className="btn-link" onClick={() => onEditar(id)}>
+        <button type="button" className="compromisso-btn" onClick={() => onEditar(id)}>
           Editar
         </button>
-        <button type="button" className="btn-link btn-link--danger" onClick={() => onExcluir(id)}>
+        <button type="button" className="compromisso-btn compromisso-btn--danger" onClick={() => onExcluir(id)}>
           Excluir
         </button>
       </div>
