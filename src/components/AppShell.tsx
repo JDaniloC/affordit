@@ -126,8 +126,8 @@ export default function AppShell(props: Props) {
             onCustoChange={v => props.setPerfil({ custo: v })}
             envelopes={props.state.perfil.envelopes}
             onEnvelopesChange={props.setEnvelopes}
-            parcelasExistentes={props.state.perfil.parcelasExistentes}
-            onParcelasExistentesChange={v => props.setPerfil({ parcelasExistentes: v })}
+            compromissos={props.state.perfil.compromissos}
+            onCompromissosChange={(next) => props.setPerfil({ compromissos: next })}
             patrimonio={props.state.perfil.patrimonio}
             onPatrimonioChange={v => props.setPerfil({ patrimonio: v })}
             reservaMeses={props.state.perfil.reservaMeses}

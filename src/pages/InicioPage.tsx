@@ -2,6 +2,7 @@ import React from 'react'
 import type { AppState, Cenario, TipoCompra } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
 import { selectCriterioAuto, calcCustoOcultoVeiculo } from '../logic/index'
+import { somaCompromissos } from '../utils/compromissos'
 import NumericInput from '../components/NumericInput'
 import ResultadoSection from '../components/ResultadoSection'
 import ChartDistribuicao from '../components/ChartDistribuicao'
@@ -118,20 +119,6 @@ export default function InicioPage({
               id="inicio-patrimonio"
               value={perfil.patrimonio}
               onChange={v => onPerfilChange({ patrimonio: v })}
-              placeholder="0,00"
-            />
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="inicio-parcelas-existentes">
-            Parcelas mensais em andamento <span className="hint-inline">(opcional)</span>
-          </label>
-          <div className="input-group">
-            <span className="unit prefix">R$</span>
-            <NumericInput
-              id="inicio-parcelas-existentes"
-              value={perfil.parcelasExistentes}
-              onChange={v => onPerfilChange({ parcelasExistentes: v })}
               placeholder="0,00"
             />
           </div>
@@ -321,7 +308,7 @@ export default function InicioPage({
           manutencaoMensal={cenario.manutencaoMensal}
           entradaValor={cenario.entradaValor}
           despesaSubstituida={cenario.despesaSubstituida}
-          parcelasExistentes={perfil.parcelasExistentes}
+          parcelasExistentes={somaCompromissos(perfil)}
           rendimentoAnual={perfil.rendimentoAnual}
           scoreSaude={r.score}
           risco={r.risco}
@@ -333,7 +320,7 @@ export default function InicioPage({
 
       <footer className="page-footer">
         <p className="hint">
-          Quer ajustar custo de vida, patrimônio, parcelas existentes ou comparar com outros itens?
+          Quer ajustar custo de vida, patrimônio ou comparar com outros itens?
         </p>
         <button type="button" className="btn-secondary" onClick={onAbrirShell}>
           Abrir simulação completa →

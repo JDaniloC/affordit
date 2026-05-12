@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Cenario, AppState, TipoCompra, Meta } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
 import { selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem, calcValorDepreciado } from '../logic/index'
+import { somaCompromissos } from '../utils/compromissos'
 import SonhoSection from '../components/SonhoSection'
 import EstrategiaSection from '../components/EstrategiaSection'
 import ResultadoSection from '../components/ResultadoSection'
@@ -265,7 +266,7 @@ export default function CenariosPage(props: Props) {
             <AvisosEstrategia
               parcelaEfetiva={r.parcelaEfetiva}
               sobraLazerMensal={r.sobraLazerMensal}
-              parcelasExistentes={perfil.parcelasExistentes}
+              parcelasExistentes={somaCompromissos(perfil)}
               renda={perfil.renda}
             />
           </>
@@ -308,7 +309,7 @@ export default function CenariosPage(props: Props) {
               manutencaoMensal={cenario.manutencaoMensal}
               entradaValor={cenario.entradaValor}
               despesaSubstituida={cenario.despesaSubstituida}
-              parcelasExistentes={perfil.parcelasExistentes}
+              parcelasExistentes={somaCompromissos(perfil)}
               rendimentoAnual={perfil.rendimentoAnual}
               scoreSaude={r.score}
               risco={r.risco}

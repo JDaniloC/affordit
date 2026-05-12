@@ -27,7 +27,6 @@ export interface Compromisso {
 export interface PerfilFinanceiro {
   renda: number
   custo: number
-  parcelasExistentes: number
   envelopes: Envelope[]
   patrimonio: number
   reservaMeses: number
@@ -78,7 +77,6 @@ export interface AppState {
 export const PERFIL_VAZIO: PerfilFinanceiro = {
   renda: 0,
   custo: 0,
-  parcelasExistentes: 0,
   envelopes: [],
   patrimonio: 0,
   reservaMeses: 6,

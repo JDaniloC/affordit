@@ -34,8 +34,7 @@ describe('migrarV1ParaV2', () => {
     expect(result.perfil.compromissos).toEqual([
       { id: 1, nome: 'Parcelas existentes', parcela: 300 },
     ])
-    // TODO Task 3: when parcelasExistentes is removed from the type, this becomes meaningful
-    // expect((result.perfil as Record<string, unknown>).parcelasExistentes).toBeUndefined()
+    expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
   })
 
   it('preserva compromissos novos quando já estão no estado', () => {
@@ -108,9 +107,7 @@ describe('migrarV1ParaV2', () => {
       metaValor: 50000,
     }
     const result = migrarV1ParaV2(v1)
-    // TODO Task 3: parcelasExistentes still present in perfil (removed from type + construction in Task 3)
-    // Using objectContaining so the extra field doesn't break this test prematurely
-    expect(result.perfil).toEqual(expect.objectContaining({
+    expect(result.perfil).toEqual({
       renda: 5000,
       custo: 2000,
       envelopes: [{ id: 1, nome: 'Investimentos', pct: 10 }],
@@ -119,7 +116,7 @@ describe('migrarV1ParaV2', () => {
       rendimentoAnual: 12,
       metaValor: 50000,
       compromissos: [{ id: 1, nome: 'Parcelas existentes', parcela: 300 }],
-    }))
+    })
   })
 
   it('preserva metas[] do v1 sem modificação (Ciclo F)', () => {
@@ -201,7 +198,7 @@ describe('migrarV1ParaV2', () => {
     const result = migrarV1ParaV2(v1)
     expect(result.perfil.custo).toBe(0)
     expect(result.perfil.patrimonio).toBe(0)
-    expect(result.perfil.parcelasExistentes).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
     expect(result.perfil.reservaMeses).toBe(0)
   })
 
