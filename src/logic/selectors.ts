@@ -40,6 +40,7 @@ import {
 } from './index'
 import { PerfilFinanceiro, Cenario } from '../types'
 import { somaCompromissos } from '../utils/compromissos'
+import { somaGastos } from '../utils/gastos'
 
 export interface ResultadoCenario {
   veredito: SimularResult
@@ -61,6 +62,7 @@ export function calcularResultadoCenario(
   cenario: Cenario,
 ): ResultadoCenario {
   const ferramenta = cenario.tipoCompra === 'ferramenta'
+  const totalGastos = somaGastos(perfil)
 
   const baldeInvestimentoR = perfil.envelopes.reduce(
     (sum, e) => sum + (e.pct / 100) * perfil.renda,
@@ -87,7 +89,7 @@ export function calcularResultadoCenario(
 
   const veredito = simularLogica({
     renda: perfil.renda,
-    custo: perfil.custo,
+    custo: totalGastos,
     patrimonio: perfil.patrimonio,
     reservaMeses: perfil.reservaMeses,
     itemValor: cenario.itemValor,
@@ -106,7 +108,7 @@ export function calcularResultadoCenario(
 
   const statusPatrimonio = calcStatusPatrimonio(
     perfil.patrimonio,
-    perfil.custo,
+    totalGastos,
     cenario.itemValor,
   )
 
@@ -115,7 +117,7 @@ export function calcularResultadoCenario(
       ? validarPassivoAltoValor({
           patrimonio: perfil.patrimonio,
           renda: perfil.renda,
-          custo: perfil.custo,
+          custo: totalGastos,
           entrada: cenario.entradaValor,
           parcela: parcelaEfetiva,
           manutencao: cenario.manutencaoMensal,
@@ -128,7 +130,7 @@ export function calcularResultadoCenario(
 
   const score = calcScoreSaude(
     perfil.renda,
-    perfil.custo,
+    totalGastos,
     perfil.patrimonio,
     perfil.reservaMeses,
     totalCompromissos,
@@ -147,7 +149,7 @@ export function calcularResultadoCenario(
         )
       : null
 
-  const reservaAlvo = perfil.custo * perfil.reservaMeses
+  const reservaAlvo = totalGastos * perfil.reservaMeses
   const patrimonioPosCompra =
     cenario.parcelas <= 1
       ? perfil.patrimonio - cenario.itemValor

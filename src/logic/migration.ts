@@ -143,7 +143,6 @@ export function migrarV1ParaV2(raw: unknown): AppState {
 
   const perfil: PerfilFinanceiro = {
     renda: num(rawPerfil, 'renda', 0),
-    custo: num(rawPerfil, 'custo', 0),
     envelopes: migrarEnvelopes(rawPerfil.envelopes),
     patrimonio: num(rawPerfil, 'patrimonio', 0),
     reservaMeses: num(rawPerfil, 'reservaMeses', 6),

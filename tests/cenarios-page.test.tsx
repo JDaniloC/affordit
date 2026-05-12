@@ -6,7 +6,6 @@ import { APP_STATE_VAZIO, Cenario } from '../src/types'
 const perfil = {
   ...APP_STATE_VAZIO.perfil,
   renda: 5000,
-  custo: 2000,
   patrimonio: 20000,
   reservaMeses: 6,
 }

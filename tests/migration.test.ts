@@ -109,7 +109,6 @@ describe('migrarV1ParaV2', () => {
     const result = migrarV1ParaV2(v1)
     expect(result.perfil).toEqual({
       renda: 5000,
-      custo: 2000,
       envelopes: [{ id: 1, nome: 'Investimentos', pct: 10 }],
       patrimonio: 12000,
       reservaMeses: 6,
@@ -133,8 +132,7 @@ describe('migrarV1ParaV2', () => {
     expect(result.perfil.gastos).toEqual([
       { id: 1, nome: 'Custo de vida', tipo: 'valor', valor: 2000 },
     ])
-    // custo legado ainda fica no perfil normalizado até Task 3
-    // (essa asserção fica como TODO Task 3: trocar para toBeUndefined)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
   })
 
   it('preserva gastos novos quando já estão no estado', () => {
@@ -271,7 +269,7 @@ describe('migrarV1ParaV2', () => {
       reservaMeses: 0,
     }
     const result = migrarV1ParaV2(v1)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.perfil.patrimonio).toBe(0)
     expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
     expect(result.perfil.reservaMeses).toBe(0)
@@ -280,7 +278,7 @@ describe('migrarV1ParaV2', () => {
   it('aplica defaults para campos numéricos ausentes', () => {
     const v1 = { renda: 5000 }
     const result = migrarV1ParaV2(v1)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.perfil.patrimonio).toBe(0)
     expect(result.perfil.reservaMeses).toBe(6)
     expect(result.perfil.envelopes).toEqual([])
@@ -297,7 +295,7 @@ describe('migrarV1ParaV2', () => {
     }
     const result = migrarV1ParaV2(raw)
     expect(result.perfil.renda).toBe(0)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.cenarios).toEqual([])
   })
 

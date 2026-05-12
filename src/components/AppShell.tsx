@@ -122,8 +122,8 @@ export default function AppShell(props: Props) {
           <PerfilPage
             renda={props.state.perfil.renda}
             onRendaChange={v => props.setPerfil({ renda: v })}
-            custo={props.state.perfil.custo}
-            onCustoChange={v => props.setPerfil({ custo: v })}
+            gastos={props.state.perfil.gastos}
+            onGastosChange={(next) => props.setPerfil({ gastos: next })}
             envelopes={props.state.perfil.envelopes}
             onEnvelopesChange={props.setEnvelopes}
             compromissos={props.state.perfil.compromissos}

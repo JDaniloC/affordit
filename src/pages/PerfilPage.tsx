@@ -1,6 +1,7 @@
 import React from 'react'
-import { Envelope, Compromisso } from '../types'
+import { Envelope, Compromisso, Gasto } from '../types'
 import { ScoreSaudeResult } from '../logic/index'
+import { valorDoGasto } from '../utils/gastos'
 import ConfigSection from '../components/ConfigSection'
 import RealidadeSection from '../components/RealidadeSection'
 import CompromissosList from '../components/CompromissosList'
@@ -8,8 +9,8 @@ import CompromissosList from '../components/CompromissosList'
 interface Props {
   renda: number
   onRendaChange: (v: number) => void
-  custo: number
-  onCustoChange: (v: number) => void
+  gastos: Gasto[]
+  onGastosChange: (next: Gasto[]) => void // passed to GastosList in Task 7
   envelopes: Envelope[]
   onEnvelopesChange: React.Dispatch<React.SetStateAction<Envelope[]>>
   compromissos: Compromisso[]
@@ -31,7 +32,8 @@ const fmt = (v: number) =>
 
 export default function PerfilPage(props: Props) {
   // Regra 50/30/20: custo de vida fixo deve idealmente ser ≤ 50% da renda
-  const custoSobreRenda = props.renda > 0 ? props.custo / props.renda : 0
+  const totalGastos = props.gastos.reduce((s, g) => s + valorDoGasto(g, props.renda), 0)
+  const custoSobreRenda = props.renda > 0 ? totalGastos / props.renda : 0
   const aviso503020 = props.renda > 0 && custoSobreRenda > 0.5
 
   return (
@@ -47,8 +49,7 @@ export default function PerfilPage(props: Props) {
         <ConfigSection
           renda={props.renda}
           onRendaChange={props.onRendaChange}
-          custo={props.custo}
-          onCustoChange={props.onCustoChange}
+          custo={totalGastos}
           envelopes={props.envelopes}
           onEnvelopesChange={props.onEnvelopesChange}
         />
@@ -56,7 +57,7 @@ export default function PerfilPage(props: Props) {
           <div className="banner-aviso" role="alert">
             <strong>⚠ Custo de vida acima de 50% da renda</strong>
             <p style={{ marginTop: 6 }}>
-              Seu custo fixo é <strong>{fmt(props.custo)}</strong> ({(custoSobreRenda * 100).toFixed(0)}% de {fmt(props.renda)}).
+              Seu custo fixo é <strong>{fmt(totalGastos)}</strong> ({(custoSobreRenda * 100).toFixed(0)}% de {fmt(props.renda)}).
               A regra <strong>50/30/20</strong> sugere ≤ 50% para necessidades, deixando 30% para desejos
               e 20% para poupança e investimentos. Acima disso fica difícil acumular reserva e poupar
               para metas.

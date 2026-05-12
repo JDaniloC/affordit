@@ -4,7 +4,7 @@ import { APP_STATE_VAZIO, AppState, PERFIL_VAZIO } from '../src/types'
 
 const makeState = (over: Partial<AppState> = {}): AppState => ({
   ...APP_STATE_VAZIO,
-  perfil: { ...PERFIL_VAZIO, renda: 5_000, custo: 2_000, patrimonio: 10_000 },
+  perfil: { ...PERFIL_VAZIO, renda: 5_000, patrimonio: 10_000 },
   ...over,
 })
 
@@ -20,7 +20,7 @@ describe('encodeShareUrl + tryDecodeShareFromUrl — round-trip', () => {
 
   it('round-trip preserva o estado', () => {
     const original = makeState({
-      perfil: { ...PERFIL_VAZIO, renda: 8_000, custo: 3_500, patrimonio: 50_000, metaValor: 100_000, rendimentoAnual: 10 },
+      perfil: { ...PERFIL_VAZIO, renda: 8_000, patrimonio: 50_000, metaValor: 100_000, rendimentoAnual: 10 },
       cenarios: [
         {
           id: 'c1',
