@@ -5,12 +5,13 @@ import { valorDoGasto } from '../utils/gastos'
 import ConfigSection from '../components/ConfigSection'
 import RealidadeSection from '../components/RealidadeSection'
 import CompromissosList from '../components/CompromissosList'
+import GastosList from '../components/GastosList'
 
 interface Props {
   renda: number
   onRendaChange: (v: number) => void
   gastos: Gasto[]
-  onGastosChange: (next: Gasto[]) => void // passed to GastosList in Task 7
+  onGastosChange: (next: Gasto[]) => void
   envelopes: Envelope[]
   onEnvelopesChange: React.Dispatch<React.SetStateAction<Envelope[]>>
   compromissos: Compromisso[]
@@ -64,6 +65,14 @@ export default function PerfilPage(props: Props) {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="page-section" id="section-gastos">
+        <GastosList
+          gastos={props.gastos}
+          renda={props.renda}
+          onChange={props.onGastosChange}
+        />
       </section>
 
       <section className="page-section" id="section-compromissos">
