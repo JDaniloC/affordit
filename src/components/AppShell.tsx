@@ -136,9 +136,6 @@ export default function AppShell(props: Props) {
             onMetaValorChange={v => props.setPerfil({ metaValor: v })}
             rendimentoAnual={props.state.perfil.rendimentoAnual}
             onRendimentoAnualChange={v => props.setPerfil({ rendimentoAnual: v })}
-            reducaoHipotetica={props.state.perfil.reducaoHipotetica}
-            onReducaoHipoteticaChange={v => props.setPerfil({ reducaoHipotetica: v })}
-            sobraLazerMensal={props.sobraLazerMensal}
             scoreSaude={props.scoreSaude}
             onRefazerSetup={props.onRefazerSetup}
           />

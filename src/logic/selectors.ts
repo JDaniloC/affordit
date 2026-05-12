@@ -1,9 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Pipeline do veredito (entry único: `calcularResultadoCenario`)
 //
-//   custoEfetivo = custo - reducaoHipotetica   (P2.7, default 0)
-//        │
-//        ▼
 //   simularLogica          → veredito base (aprovado/juntar/negado) + debug
 //        │
 //        ├── calcFluxoCaixa, calcStatusPatrimonio, calcCustoComJuros
@@ -64,10 +61,6 @@ export function calcularResultadoCenario(
 ): ResultadoCenario {
   const ferramenta = cenario.tipoCompra === 'ferramenta'
 
-  // P2.7 — custo efetivo aplica a redução hipotética uniformemente em toda a árvore
-  // de cálculo. Quando reducaoHipotetica = 0 (default), o comportamento é idêntico ao anterior.
-  const custoEfetivo = Math.max(0, perfil.custo - perfil.reducaoHipotetica)
-
   const baldeInvestimentoR = perfil.envelopes.reduce(
     (sum, e) => sum + (e.pct / 100) * perfil.renda,
     0,
@@ -91,7 +84,7 @@ export function calcularResultadoCenario(
 
   const veredito = simularLogica({
     renda: perfil.renda,
-    custo: custoEfetivo,
+    custo: perfil.custo,
     patrimonio: perfil.patrimonio,
     reservaMeses: perfil.reservaMeses,
     itemValor: cenario.itemValor,
@@ -110,7 +103,7 @@ export function calcularResultadoCenario(
 
   const statusPatrimonio = calcStatusPatrimonio(
     perfil.patrimonio,
-    custoEfetivo,
+    perfil.custo,
     cenario.itemValor,
   )
 
@@ -119,7 +112,7 @@ export function calcularResultadoCenario(
       ? validarPassivoAltoValor({
           patrimonio: perfil.patrimonio,
           renda: perfil.renda,
-          custo: custoEfetivo,
+          custo: perfil.custo,
           entrada: cenario.entradaValor,
           parcela: parcelaEfetiva,
           manutencao: cenario.manutencaoMensal,
@@ -132,7 +125,7 @@ export function calcularResultadoCenario(
 
   const score = calcScoreSaude(
     perfil.renda,
-    custoEfetivo,
+    perfil.custo,
     perfil.patrimonio,
     perfil.reservaMeses,
     perfil.parcelasExistentes,
@@ -151,7 +144,7 @@ export function calcularResultadoCenario(
         )
       : null
 
-  const reservaAlvo = custoEfetivo * perfil.reservaMeses
+  const reservaAlvo = perfil.custo * perfil.reservaMeses
   const patrimonioPosCompra =
     cenario.parcelas <= 1
       ? perfil.patrimonio - cenario.itemValor

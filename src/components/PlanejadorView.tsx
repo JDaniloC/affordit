@@ -211,7 +211,7 @@ export default function PlanejadorView({
                     <input
                       type="range"
                       min={1}
-                      max={20}
+                      max={50}
                       step={1}
                       value={Math.round(pctMaxPatrimonio * 100)}
                       onChange={(e) => setPctMaxPatrimonio(Number(e.target.value) / 100)}

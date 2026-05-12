@@ -142,17 +142,12 @@ export default function App() {
   }
 
   const { renda, custo, patrimonio, reservaMeses, envelopes, parcelasExistentes,
-    rendimentoAnual, reducaoHipotetica } = state.perfil
-
-  const custoEfetivo = useMemo(
-    () => Math.max(0, custo - reducaoHipotetica),
-    [custo, reducaoHipotetica],
-  )
+    rendimentoAnual } = state.perfil
 
   const sobraLazerMensal = useMemo(
     () =>
-      Math.max(0, (calcLazerPct(renda, custoEfetivo, envelopes) / 100) * renda - parcelasExistentes),
-    [renda, custoEfetivo, envelopes, parcelasExistentes],
+      Math.max(0, (calcLazerPct(renda, custo, envelopes) / 100) * renda - parcelasExistentes),
+    [renda, custo, envelopes, parcelasExistentes],
   )
 
   const rendimentoMensalEfetivo = useMemo(

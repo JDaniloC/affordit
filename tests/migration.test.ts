@@ -42,7 +42,6 @@ describe('migrarV1ParaV2', () => {
       reservaMeses: 6,
       rendimentoAnual: 12,
       metaValor: 50000,
-      reducaoHipotetica: 0,
     })
   })
 
