@@ -116,6 +116,7 @@ describe('migrarV1ParaV2', () => {
       rendimentoAnual: 12,
       metaValor: 50000,
       compromissos: [{ id: 1, nome: 'Parcelas existentes', parcela: 300 }],
+      gastos: [],
     })
   })
 

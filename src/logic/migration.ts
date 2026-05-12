@@ -124,6 +124,7 @@ export function migrarV1ParaV2(raw: unknown): AppState {
     rendimentoAnual: num(rawPerfil, 'rendimentoAnual', 0),
     metaValor: num(rawPerfil, 'metaValor', 0),
     compromissos,
+    gastos: [],
   }
 
   // ── Metas ──
