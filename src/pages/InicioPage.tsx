@@ -8,6 +8,9 @@ import ResultadoSection from '../components/ResultadoSection'
 import ChartDistribuicao from '../components/ChartDistribuicao'
 import ChartPrazoVivo from '../components/ChartPrazoVivo'
 
+const fmt = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
 interface Props {
   perfil: AppState['perfil']
   cenario: Cenario | null
@@ -122,6 +125,21 @@ export default function InicioPage({
               placeholder="0,00"
             />
           </div>
+        </div>
+        <div className="field inicio-compromissos-display">
+          <label>Comprometimento mensal <span className="hint-inline">(opcional, gerencie no perfil)</span></label>
+          {perfil.compromissos.length > 0 ? (
+            <p className="hint">
+              <strong>{fmt(somaCompromissos(perfil))}/mês</strong>
+              {' '}({perfil.compromissos.length} {perfil.compromissos.length === 1 ? 'item' : 'itens'})
+              {' '}<a href="#/perfil">gerenciar →</a>
+            </p>
+          ) : (
+            <p className="hint">
+              Nenhum compromisso cadastrado.{' '}
+              <a href="#/perfil">adicionar →</a>
+            </p>
+          )}
         </div>
       </section>
 
