@@ -21,6 +21,80 @@ describe('migrarV1ParaV2', () => {
     expect(migrarV1ParaV2(v2)).toEqual(v2)
   })
 
+  it('converte parcelasExistentes legado em 1 compromisso', () => {
+    const v2 = {
+      perfil: {
+        renda: 5000, custo: 2000, parcelasExistentes: 300,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    const result = migrarV1ParaV2(v2)
+    expect(result.perfil.compromissos).toEqual([
+      { id: 1, nome: 'Parcelas existentes', parcela: 300 },
+    ])
+    expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
+  })
+
+  it('preserva compromissos novos quando já estão no estado', () => {
+    const v3 = {
+      perfil: {
+        renda: 5000, custo: 2000, parcelasExistentes: 999,  // legado deve ser ignorado
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+        compromissos: [
+          { id: 5, nome: 'Cartão', parcela: 200 },
+          { id: 6, nome: 'Net', parcela: 90, prazo: 24, prazoTotal: 36, taxa: 1.5 },
+        ],
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    const result = migrarV1ParaV2(v3)
+    expect(result.perfil.compromissos).toEqual([
+      { id: 5, nome: 'Cartão', parcela: 200 },
+      { id: 6, nome: 'Net', parcela: 90, prazo: 24, prazoTotal: 36, taxa: 1.5 },
+    ])
+  })
+
+  it('lista vazia quando parcelasExistentes legado é 0 e não há compromissos novos', () => {
+    const v2 = {
+      perfil: {
+        renda: 5000, custo: 0, parcelasExistentes: 0,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    expect(migrarV1ParaV2(v2).perfil.compromissos).toEqual([])
+  })
+
+  it('migrarCompromissos filtra itens inválidos da lista (id/nome/parcela ausentes)', () => {
+    const v3 = {
+      perfil: {
+        renda: 5000, custo: 0, parcelasExistentes: 0,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+        compromissos: [
+          { id: 1, nome: 'Válido', parcela: 100 },
+          { id: 'string', nome: 'Inválido id', parcela: 50 },     // id não é number
+          { id: 2, nome: '', parcela: 50 },                        // nome vazio é tecnicamente OK (string)
+          { id: 3, parcela: 50 },                                  // sem nome
+          { id: 4, nome: 'Sem parcela' },                          // sem parcela
+          { id: 5, nome: 'OK 2', parcela: 80, prazo: 6 },
+        ],
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    const result = migrarV1ParaV2(v3)
+    // Deve sobrar: id 1, id 2 (nome vazio passa pelo typeof string), id 5
+    expect(result.perfil.compromissos).toEqual([
+      { id: 1, nome: 'Válido', parcela: 100 },
+      { id: 2, nome: '', parcela: 50 },
+      { id: 5, nome: 'OK 2', parcela: 80, prazo: 6 },
+    ])
+  })
+
   it('migra perfil financeiro do v1 corretamente (incluindo metaValor)', () => {
     const v1 = {
       renda: 5000,
@@ -36,12 +110,12 @@ describe('migrarV1ParaV2', () => {
     expect(result.perfil).toEqual({
       renda: 5000,
       custo: 2000,
-      parcelasExistentes: 300,
       envelopes: [{ id: 1, nome: 'Investimentos', pct: 10 }],
       patrimonio: 12000,
       reservaMeses: 6,
       rendimentoAnual: 12,
       metaValor: 50000,
+      compromissos: [{ id: 1, nome: 'Parcelas existentes', parcela: 300 }],
     })
   })
 
@@ -124,7 +198,7 @@ describe('migrarV1ParaV2', () => {
     const result = migrarV1ParaV2(v1)
     expect(result.perfil.custo).toBe(0)
     expect(result.perfil.patrimonio).toBe(0)
-    expect(result.perfil.parcelasExistentes).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
     expect(result.perfil.reservaMeses).toBe(0)
   })
 

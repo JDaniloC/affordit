@@ -39,6 +39,7 @@ import {
   RiscoPatrimonio,
 } from './index'
 import { PerfilFinanceiro, Cenario } from '../types'
+import { somaCompromissos } from '../utils/compromissos'
 
 export interface ResultadoCenario {
   veredito: SimularResult
@@ -82,6 +83,8 @@ export function calcularResultadoCenario(
       ? (Math.pow(1 + perfil.rendimentoAnual / 100, 1 / 12) - 1) * 100
       : 0
 
+  const totalCompromissos = somaCompromissos(perfil)
+
   const veredito = simularLogica({
     renda: perfil.renda,
     custo: perfil.custo,
@@ -92,7 +95,7 @@ export function calcularResultadoCenario(
     ferramenta,
     envelopes: perfil.envelopes,
     parcelas: cenario.parcelas,
-    parcelasExistentes: perfil.parcelasExistentes,
+    parcelasExistentes: totalCompromissos,
   })
 
   const fluxo = calcFluxoCaixa(
@@ -128,7 +131,7 @@ export function calcularResultadoCenario(
     perfil.custo,
     perfil.patrimonio,
     perfil.reservaMeses,
-    perfil.parcelasExistentes,
+    totalCompromissos,
     perfil.envelopes,
   )
 
@@ -151,14 +154,14 @@ export function calcularResultadoCenario(
       : perfil.patrimonio - cenario.entradaValor
   const dtiPos =
     perfil.renda > 0
-      ? (perfil.parcelasExistentes + parcelaEfetiva) / perfil.renda
+      ? (totalCompromissos + parcelaEfetiva) / perfil.renda
       : 0
 
   const risco = calcRiscoPatrimonio({
     patrimonio: perfil.patrimonio,
     valorCompra: cenario.itemValor,
     tipoCompra: cenario.tipoCompra,
-    parcelasExistentes: perfil.parcelasExistentes,
+    parcelasExistentes: totalCompromissos,
     parcelaNova: parcelaEfetiva,
     sobraLazerMensal: veredito.debug.sobraLazerMensal,
     dtiPos,

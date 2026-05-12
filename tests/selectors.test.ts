@@ -5,12 +5,12 @@ import { PerfilFinanceiro, Cenario } from '../src/types.ts'
 const perfilBase: PerfilFinanceiro = {
   renda: 5000,
   custo: 2000,
-  parcelasExistentes: 0,
   envelopes: [{ id: 1, nome: 'Investimentos', pct: 10 }],
   patrimonio: 15000,
   reservaMeses: 6,
   rendimentoAnual: 0,
   metaValor: 0,
+  compromissos: [],
 }
 
 const cenarioBase: Cenario = {

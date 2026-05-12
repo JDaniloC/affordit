@@ -1,8 +1,9 @@
 import React from 'react'
-import { Envelope } from '../types'
+import { Envelope, Compromisso } from '../types'
 import { ScoreSaudeResult } from '../logic/index'
 import ConfigSection from '../components/ConfigSection'
 import RealidadeSection from '../components/RealidadeSection'
+import CompromissosList from '../components/CompromissosList'
 
 interface Props {
   renda: number
@@ -11,8 +12,8 @@ interface Props {
   onCustoChange: (v: number) => void
   envelopes: Envelope[]
   onEnvelopesChange: React.Dispatch<React.SetStateAction<Envelope[]>>
-  parcelasExistentes: number
-  onParcelasExistentesChange: (v: number) => void
+  compromissos: Compromisso[]
+  onCompromissosChange: (next: Compromisso[]) => void
   patrimonio: number
   onPatrimonioChange: (v: number) => void
   reservaMeses: number
@@ -50,8 +51,6 @@ export default function PerfilPage(props: Props) {
           onCustoChange={props.onCustoChange}
           envelopes={props.envelopes}
           onEnvelopesChange={props.onEnvelopesChange}
-          parcelasExistentes={props.parcelasExistentes}
-          onParcelasExistentesChange={props.onParcelasExistentesChange}
         />
         {aviso503020 && (
           <div className="banner-aviso" role="alert">
@@ -64,6 +63,14 @@ export default function PerfilPage(props: Props) {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="page-section" id="section-compromissos">
+        <CompromissosList
+          compromissos={props.compromissos}
+          renda={props.renda}
+          onChange={props.onCompromissosChange}
+        />
       </section>
 
       <section className="page-section">
