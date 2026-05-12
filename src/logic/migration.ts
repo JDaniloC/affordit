@@ -2,6 +2,7 @@ import {
   AppState,
   PerfilFinanceiro,
   Cenario,
+  Compromisso,
   Meta,
   TipoCompra,
   Envelope,
@@ -78,6 +79,24 @@ function migrarCenarios(raw: unknown): Cenario[] {
     })
 }
 
+function migrarCompromissos(raw: unknown): Compromisso[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((c): c is Record<string, unknown> => isObject(c))
+    .filter(c => typeof c.id === 'number' && typeof c.nome === 'string' && typeof c.parcela === 'number')
+    .map(c => {
+      const item: Compromisso = {
+        id: c.id as number,
+        nome: c.nome as string,
+        parcela: c.parcela as number,
+      }
+      if (typeof c.prazo === 'number') item.prazo = c.prazo
+      if (typeof c.prazoTotal === 'number') item.prazoTotal = c.prazoTotal
+      if (typeof c.taxa === 'number') item.taxa = c.taxa
+      return item
+    })
+}
+
 /**
  * Coerces any raw object into a valid AppState.
  * Handles v1 (flat fields), v2 (nested perfil/cenarios), and partial/malformed input uniformly.
@@ -88,16 +107,24 @@ export function migrarV1ParaV2(raw: unknown): AppState {
 
   // ── Perfil ──
   const rawPerfil = isObject(raw.perfil) ? raw.perfil : raw
+  const compromissosNovos = migrarCompromissos(rawPerfil.compromissos)
+  const parcelasLegadas = num(rawPerfil, 'parcelasExistentes', 0)
+  const compromissos: Compromisso[] = compromissosNovos.length > 0
+    ? compromissosNovos
+    : (parcelasLegadas > 0
+        ? [{ id: 1, nome: 'Parcelas existentes', parcela: parcelasLegadas }]
+        : [])
+
   const perfil: PerfilFinanceiro = {
     renda: num(rawPerfil, 'renda', 0),
     custo: num(rawPerfil, 'custo', 0),
-    parcelasExistentes: num(rawPerfil, 'parcelasExistentes', 0),
+    parcelasExistentes: num(rawPerfil, 'parcelasExistentes', 0),  // Task 3 remove
     envelopes: migrarEnvelopes(rawPerfil.envelopes),
     patrimonio: num(rawPerfil, 'patrimonio', 0),
     reservaMeses: num(rawPerfil, 'reservaMeses', 6),
     rendimentoAnual: num(rawPerfil, 'rendimentoAnual', 0),
     metaValor: num(rawPerfil, 'metaValor', 0),
-    compromissos: [],
+    compromissos,
   }
 
   // ── Metas ──
