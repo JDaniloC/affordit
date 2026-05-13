@@ -24,15 +24,19 @@ export interface Compromisso {
   taxa?: number           // % a.m.
 }
 
+export type Gasto =
+  | { id: number; nome: string; tipo: 'valor'; valor: number }
+  | { id: number; nome: string; tipo: 'pct'; pct: number }
+
 export interface PerfilFinanceiro {
   renda: number
-  custo: number
   envelopes: Envelope[]
   patrimonio: number
   reservaMeses: number
   rendimentoAnual: number
   metaValor: number
   compromissos: Compromisso[]
+  gastos: Gasto[]
 }
 
 export interface Cenario {
@@ -76,13 +80,13 @@ export interface AppState {
 // Helpers de fábrica
 export const PERFIL_VAZIO: PerfilFinanceiro = {
   renda: 0,
-  custo: 0,
   envelopes: [],
   patrimonio: 0,
   reservaMeses: 6,
   rendimentoAnual: 0,
   metaValor: 0,
   compromissos: [],
+  gastos: [],
 }
 
 export const APP_STATE_VAZIO: AppState = {

@@ -3,6 +3,7 @@ import { Cenario, AppState, TipoCompra, Meta } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
 import { selectCriterioAuto, calcCustoComJuros, calcValorFuturoItem, calcValorDepreciado } from '../logic/index'
 import { somaCompromissos } from '../utils/compromissos'
+import { somaGastos } from '../utils/gastos'
 import SonhoSection from '../components/SonhoSection'
 import EstrategiaSection from '../components/EstrategiaSection'
 import ResultadoSection from '../components/ResultadoSection'
@@ -294,7 +295,7 @@ export default function CenariosPage(props: Props) {
               patrim={r.statusPatrimonio}
               ferramenta={ferramenta}
               renda={perfil.renda}
-              custo={perfil.custo}
+              custo={somaGastos(perfil)}
               reservaMeses={perfil.reservaMeses}
               patrimonio={perfil.patrimonio}
               itemValor={cenario.itemValor}

@@ -109,14 +109,87 @@ describe('migrarV1ParaV2', () => {
     const result = migrarV1ParaV2(v1)
     expect(result.perfil).toEqual({
       renda: 5000,
-      custo: 2000,
       envelopes: [{ id: 1, nome: 'Investimentos', pct: 10 }],
       patrimonio: 12000,
       reservaMeses: 6,
       rendimentoAnual: 12,
       metaValor: 50000,
       compromissos: [{ id: 1, nome: 'Parcelas existentes', parcela: 300 }],
+      gastos: [{ id: 1, nome: 'Custo de vida', tipo: 'valor', valor: 2000 }],
     })
+  })
+
+  it('converte custo legado em 1 gasto', () => {
+    const v2 = {
+      perfil: {
+        renda: 5000, custo: 2000, parcelasExistentes: 0,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    const result = migrarV1ParaV2(v2)
+    expect(result.perfil.gastos).toEqual([
+      { id: 1, nome: 'Custo de vida', tipo: 'valor', valor: 2000 },
+    ])
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
+  })
+
+  it('preserva gastos novos quando já estão no estado', () => {
+    const v3 = {
+      perfil: {
+        renda: 5000, custo: 999,  // legado deve ser ignorado
+        parcelasExistentes: 0, envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+        gastos: [
+          { id: 5, nome: 'Aluguel', tipo: 'valor', valor: 1500 },
+          { id: 6, nome: 'Mercado', tipo: 'pct', pct: 12 },
+        ],
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    const result = migrarV1ParaV2(v3)
+    expect(result.perfil.gastos).toEqual([
+      { id: 5, nome: 'Aluguel', tipo: 'valor', valor: 1500 },
+      { id: 6, nome: 'Mercado', tipo: 'pct', pct: 12 },
+    ])
+  })
+
+  it('lista vazia quando custo legado é 0 e não há gastos novos', () => {
+    const v2 = {
+      perfil: {
+        renda: 5000, custo: 0, parcelasExistentes: 0,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    expect(migrarV1ParaV2(v2).perfil.gastos).toEqual([])
+  })
+
+  it('migrarGastos filtra itens inválidos (tipo ou campo ausente)', () => {
+    const v3 = {
+      perfil: {
+        renda: 5000, custo: 0, parcelasExistentes: 0,
+        envelopes: [], patrimonio: 0, reservaMeses: 6,
+        rendimentoAnual: 0, metaValor: 0,
+        gastos: [
+          { id: 1, nome: 'Válido valor', tipo: 'valor', valor: 100 },
+          { id: 2, nome: 'Válido pct', tipo: 'pct', pct: 10 },
+          { id: 3, nome: 'Sem tipo', valor: 50 },                  // ignorado
+          { id: 4, nome: 'Tipo inválido', tipo: 'misto', valor: 50 }, // ignorado
+          { id: 5, nome: 'Tipo pct sem campo pct', tipo: 'pct', valor: 50 }, // ignorado
+          { id: 'string', nome: 'Id inválido', tipo: 'valor', valor: 50 }, // ignorado
+          { id: 7, nome: 'OK 2', tipo: 'valor', valor: 80 },
+        ],
+      },
+      cenarios: [], metas: [], cenarioAtivoId: null, onboardingConcluido: true,
+    }
+    expect(migrarV1ParaV2(v3).perfil.gastos).toEqual([
+      { id: 1, nome: 'Válido valor', tipo: 'valor', valor: 100 },
+      { id: 2, nome: 'Válido pct', tipo: 'pct', pct: 10 },
+      { id: 7, nome: 'OK 2', tipo: 'valor', valor: 80 },
+    ])
   })
 
   it('preserva metas[] do v1 sem modificação (Ciclo F)', () => {
@@ -196,7 +269,7 @@ describe('migrarV1ParaV2', () => {
       reservaMeses: 0,
     }
     const result = migrarV1ParaV2(v1)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.perfil.patrimonio).toBe(0)
     expect((result.perfil as unknown as Record<string, unknown>).parcelasExistentes).toBeUndefined()
     expect(result.perfil.reservaMeses).toBe(0)
@@ -205,7 +278,7 @@ describe('migrarV1ParaV2', () => {
   it('aplica defaults para campos numéricos ausentes', () => {
     const v1 = { renda: 5000 }
     const result = migrarV1ParaV2(v1)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.perfil.patrimonio).toBe(0)
     expect(result.perfil.reservaMeses).toBe(6)
     expect(result.perfil.envelopes).toEqual([])
@@ -222,7 +295,7 @@ describe('migrarV1ParaV2', () => {
     }
     const result = migrarV1ParaV2(raw)
     expect(result.perfil.renda).toBe(0)
-    expect(result.perfil.custo).toBe(0)
+    expect((result.perfil as unknown as Record<string, unknown>).custo).toBeUndefined()
     expect(result.cenarios).toEqual([])
   })
 

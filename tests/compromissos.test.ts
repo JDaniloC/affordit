@@ -3,9 +3,9 @@ import { somaCompromissos, formatPrazoTermino } from '../src/utils/compromissos'
 import { PerfilFinanceiro } from '../src/types'
 
 const perfilBase: PerfilFinanceiro = {
-  renda: 5000, custo: 2000, envelopes: [],
+  renda: 5000, envelopes: [],
   patrimonio: 0, reservaMeses: 6, rendimentoAnual: 0, metaValor: 0,
-  compromissos: [],
+  compromissos: [], gastos: [],
 }
 
 describe('somaCompromissos', () => {

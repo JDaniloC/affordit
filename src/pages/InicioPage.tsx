@@ -3,6 +3,7 @@ import type { AppState, Cenario, TipoCompra } from '../types'
 import { calcularResultadoCenario } from '../logic/selectors'
 import { selectCriterioAuto, calcCustoOcultoVeiculo } from '../logic/index'
 import { somaCompromissos } from '../utils/compromissos'
+import { somaGastos } from '../utils/gastos'
 import NumericInput from '../components/NumericInput'
 import ResultadoSection from '../components/ResultadoSection'
 import ChartDistribuicao from '../components/ChartDistribuicao'
@@ -34,6 +35,7 @@ export default function InicioPage({
 }: Props) {
   if (!cenario) return null
 
+  const totalGastos = somaGastos(perfil)
   const temItem = cenario.itemValor > 0
   const temRenda = perfil.renda > 0
   const podeMostrarVeredito = temItem && temRenda
@@ -100,21 +102,6 @@ export default function InicioPage({
           </div>
         </div>
         <div className="field">
-          <label htmlFor="inicio-custo">Custo de vida mensal <span className="hint-inline">(opcional)</span></label>
-          <div className="input-group">
-            <span className="unit prefix">R$</span>
-            <NumericInput
-              id="inicio-custo"
-              value={perfil.custo}
-              onChange={v => onPerfilChange({ custo: v })}
-              placeholder="0,00"
-            />
-          </div>
-          <p className="field-hint">
-            Define a reserva-alvo ({perfil.reservaMeses} meses) e o que sobra para juntar.
-          </p>
-        </div>
-        <div className="field">
           <label htmlFor="inicio-patrimonio">Patrimônio guardado <span className="hint-inline">(opcional)</span></label>
           <div className="input-group">
             <span className="unit prefix">R$</span>
@@ -137,6 +124,21 @@ export default function InicioPage({
           ) : (
             <p className="hint">
               Nenhum compromisso cadastrado.{' '}
+              <a href="#/perfil">adicionar →</a>
+            </p>
+          )}
+        </div>
+        <div className="field inicio-gastos-display">
+          <label>Custo de vida <span className="hint-inline">(opcional, gerencie no perfil)</span></label>
+          {perfil.gastos.length > 0 ? (
+            <p className="hint">
+              <strong>{fmt(totalGastos)}/mês</strong>
+              {' '}({perfil.gastos.length} {perfil.gastos.length === 1 ? 'item' : 'itens'})
+              {' '}<a href="#/perfil">gerenciar →</a>
+            </p>
+          ) : (
+            <p className="hint">
+              Custo de vida não informado.{' '}
               <a href="#/perfil">adicionar →</a>
             </p>
           )}
@@ -286,7 +288,7 @@ export default function InicioPage({
       {temRenda && perfil.envelopes.length > 0 && (
         <section className="card">
           <h3>Distribuição da renda</h3>
-          <ChartDistribuicao renda={perfil.renda} custo={perfil.custo} envelopes={perfil.envelopes} />
+          <ChartDistribuicao renda={perfil.renda} custo={totalGastos} envelopes={perfil.envelopes} />
         </section>
       )}
 
@@ -311,7 +313,7 @@ export default function InicioPage({
           patrim={r.statusPatrimonio}
           ferramenta={ferramenta}
           renda={perfil.renda}
-          custo={perfil.custo}
+          custo={totalGastos}
           reservaMeses={perfil.reservaMeses}
           patrimonio={perfil.patrimonio}
           itemValor={cenario.itemValor}

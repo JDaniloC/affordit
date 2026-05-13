@@ -3,6 +3,7 @@ import {
   PerfilFinanceiro,
   Cenario,
   Compromisso,
+  Gasto,
   Meta,
   TipoCompra,
   Envelope,
@@ -97,6 +98,23 @@ function migrarCompromissos(raw: unknown): Compromisso[] {
     })
 }
 
+function migrarGastos(raw: unknown): Gasto[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((g): Gasto | null => {
+      if (!isObject(g)) return null
+      if (typeof g.id !== 'number' || typeof g.nome !== 'string') return null
+      if (g.tipo === 'valor' && typeof g.valor === 'number') {
+        return { id: g.id, nome: g.nome, tipo: 'valor', valor: g.valor }
+      }
+      if (g.tipo === 'pct' && typeof g.pct === 'number') {
+        return { id: g.id, nome: g.nome, tipo: 'pct', pct: g.pct }
+      }
+      return null
+    })
+    .filter((g): g is Gasto => g !== null)
+}
+
 /**
  * Coerces any raw object into a valid AppState.
  * Handles v1 (flat fields), v2 (nested perfil/cenarios), and partial/malformed input uniformly.
@@ -115,15 +133,23 @@ export function migrarV1ParaV2(raw: unknown): AppState {
         ? [{ id: 1, nome: 'Parcelas existentes', parcela: parcelasLegadas }]
         : [])
 
+  const gastosNovos = migrarGastos(rawPerfil.gastos)
+  const custoLegado = num(rawPerfil, 'custo', 0)
+  const gastos: Gasto[] = gastosNovos.length > 0
+    ? gastosNovos
+    : (custoLegado > 0
+        ? [{ id: 1, nome: 'Custo de vida', tipo: 'valor', valor: custoLegado }]
+        : [])
+
   const perfil: PerfilFinanceiro = {
     renda: num(rawPerfil, 'renda', 0),
-    custo: num(rawPerfil, 'custo', 0),
     envelopes: migrarEnvelopes(rawPerfil.envelopes),
     patrimonio: num(rawPerfil, 'patrimonio', 0),
     reservaMeses: num(rawPerfil, 'reservaMeses', 6),
     rendimentoAnual: num(rawPerfil, 'rendimentoAnual', 0),
     metaValor: num(rawPerfil, 'metaValor', 0),
     compromissos,
+    gastos,
   }
 
   // ── Metas ──

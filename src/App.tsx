@@ -5,6 +5,7 @@ import { loadAppState, saveAppState } from './state/storage'
 import { tryDecodeShareFromUrl, clearShareParamFromUrl } from './state/share'
 import { calcLazerPct, calcScoreSaude } from './logic/index'
 import { somaCompromissos } from './utils/compromissos'
+import { somaGastos } from './utils/gastos'
 import { gerarId } from './utils/id'
 import { formatHash } from './hooks/useHashRoute'
 import AppShell from './components/AppShell'
@@ -142,15 +143,19 @@ export default function App() {
     })
   }
 
-  const { renda, custo, patrimonio, reservaMeses, envelopes, compromissos,
-    rendimentoAnual } = state.perfil
+  const { renda, patrimonio, reservaMeses, envelopes, rendimentoAnual } = state.perfil
 
   const totalCompromissos = useMemo(() => somaCompromissos(state.perfil), [state.perfil.compromissos])
 
+  const totalGastos = useMemo(
+    () => somaGastos(state.perfil),
+    [state.perfil.gastos, state.perfil.renda],
+  )
+
   const sobraLazerMensal = useMemo(
     () =>
-      Math.max(0, (calcLazerPct(renda, custo, envelopes) / 100) * renda - totalCompromissos),
-    [renda, custo, envelopes, totalCompromissos],
+      Math.max(0, (calcLazerPct(renda, totalGastos, envelopes) / 100) * renda - totalCompromissos),
+    [renda, totalGastos, envelopes, totalCompromissos],
   )
 
   const rendimentoMensalEfetivo = useMemo(
@@ -161,8 +166,8 @@ export default function App() {
 
   const scoreSaude = useMemo(
     () =>
-      calcScoreSaude(renda, custo, patrimonio, reservaMeses, totalCompromissos, envelopes),
-    [renda, custo, patrimonio, reservaMeses, totalCompromissos, envelopes],
+      calcScoreSaude(renda, totalGastos, patrimonio, reservaMeses, totalCompromissos, envelopes),
+    [renda, totalGastos, patrimonio, reservaMeses, totalCompromissos, envelopes],
   )
 
   // "Refazer setup" zera renda do perfil e leva o usuário para /inicio.

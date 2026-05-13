@@ -1,5 +1,6 @@
 import React from 'react'
 import { AppState, Meta } from '../types'
+import { somaGastos } from '../utils/gastos'
 import PlanejadorView from '../components/PlanejadorView'
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export default function MetasPage(props: Props) {
-  const reservaAlvo = props.perfil.custo * props.perfil.reservaMeses
+  const reservaAlvo = somaGastos(props.perfil) * props.perfil.reservaMeses
   return (
     <PlanejadorView
       metas={props.metas}
