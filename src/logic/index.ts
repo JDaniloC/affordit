@@ -645,6 +645,7 @@ function calcCronogramaSaudavel(
   pctMaxPatrimonio: number,
   atrasoMaxPorMeta: number,
   reservaAlvo: number,
+  eventosSobra: ReadonlyArray<{ mes: number; deltaSobra: number }> = [],
 ): CronogramaResult {
   const horizonte = HORIZONTE_CRONOGRAMA
   const agendadas: MetaAgendada[] = []
@@ -675,6 +676,7 @@ function calcCronogramaSaudavel(
       taxaMensal,
       filaAteAqui,
       horizonte,
+      eventosSobra,
     )
 
     for (let t = mesMinimo; t <= horizonte; t++) {
@@ -699,6 +701,7 @@ function calcCronogramaSaudavel(
           taxaMensal,
           filaCom,
           horizonte,
+          eventosSobra,
         )
         const mesSem = _primeiroMesQueAtinge(trajAtual, metaValor)
         const mesCom = _primeiroMesQueAtinge(trajCom, metaValor)

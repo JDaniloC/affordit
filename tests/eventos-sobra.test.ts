@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { compromissosToEventos } from '../src/utils/compromissos'
 import type { Compromisso } from '../src/types'
-import { calcTrajetoriaPatrimonio } from '../src/logic/index'
+import { calcTrajetoriaPatrimonio, calcCronogramaSaudavel } from '../src/logic/index'
+import type { Meta } from '../src/types'
 
 describe('compromissosToEventos', () => {
   it('retorna lista vazia quando não há compromissos', () => {
@@ -112,5 +113,33 @@ describe('calcTrajetoriaPatrimonio com eventosSobra', () => {
       [{ mes: 6, deltaSobra: 30 }, { mes: 3, deltaSobra: 50 }],
     )
     expect(trajUnordered).toEqual(trajOrdered)
+  })
+})
+
+describe('calcCronogramaSaudavel com eventosSobra', () => {
+  // Cenário: patrimonio 10000, sobra 200/mês, sem juros, metaValor 0
+  // (sem critério de atraso), pctMaxPatrimonio 50% (frouxo), reservaAlvo 0.
+  // Meta única: R$ 6000.
+  it('antecipa meta quando evento de sobra ocorre antes', () => {
+    const metas: Meta[] = [{ id: 1, nome: 'TV', valor: 6000 }]
+    const semEventos = calcCronogramaSaudavel(
+      metas, 10000, 200, 0, 0, 0.5, 0, 0,
+    )
+    const comEventos = calcCronogramaSaudavel(
+      metas, 10000, 200, 0, 0, 0.5, 0, 0,
+      [{ mes: 4, deltaSobra: 300 }],
+    )
+    expect(semEventos.agendadas[0]).toBeDefined()
+    expect(comEventos.agendadas[0]).toBeDefined()
+    expect(semEventos.agendadas[0].mesQueCompleta).toBeGreaterThan(
+      comEventos.agendadas[0].mesQueCompleta,
+    )
+  })
+
+  it('com eventosSobra=[] ou sem o param, comportamento é idêntico', () => {
+    const metas: Meta[] = [{ id: 1, nome: 'TV', valor: 6000 }]
+    const a = calcCronogramaSaudavel(metas, 10000, 200, 0, 0, 0.5, 0, 0)
+    const b = calcCronogramaSaudavel(metas, 10000, 200, 0, 0, 0.5, 0, 0, [])
+    expect(a).toEqual(b)
   })
 })
