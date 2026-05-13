@@ -8,6 +8,7 @@ import {
   formatPrazoBR,
 } from '../logic/index'
 import { compromissosToEventos } from '../utils/compromissos'
+import EventosSobraResumo from './EventosSobraResumo'
 import CronogramaCard from './CronogramaCard'
 import MetaForm from './MetaForm'
 import GraficoFila from './GraficoFila'
@@ -246,6 +247,10 @@ export default function PlanejadorView({
                     </div>
                   )}
                 </div>
+              )}
+
+              {modoSaudavel && (
+                <EventosSobraResumo eventos={eventosSobra} />
               )}
             </div>
           )}
