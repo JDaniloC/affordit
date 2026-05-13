@@ -131,4 +131,36 @@ describe('GastosList', () => {
     fireEvent.click(screen.getByRole('button', { name: /adicionar gasto/i }))
     expect((screen.getByLabelText(/nome/i) as HTMLInputElement).value).toBe('')
   })
+
+  describe('preset de gastos básicos', () => {
+    it('botão de preset aparece quando lista vazia', () => {
+      render(<GastosList gastos={[]} renda={1500} onChange={() => {}} />)
+      expect(screen.getByRole('button', { name: /carregar exemplo de gastos básicos/i })).toBeTruthy()
+    })
+
+    it('botão de preset some quando há gastos', () => {
+      render(
+        <GastosList
+          gastos={[{ id: 1, nome: 'X', tipo: 'valor', valor: 100 }]}
+          renda={1500}
+          onChange={() => {}}
+        />,
+      )
+      expect(screen.queryByRole('button', { name: /carregar exemplo/i })).toBeNull()
+    })
+
+    it('clicar em preset insere itens via onChange com IDs sequenciais', () => {
+      const onChange = vi.fn()
+      render(<GastosList gastos={[]} renda={1500} onChange={onChange} />)
+      fireEvent.click(screen.getByRole('button', { name: /carregar exemplo/i }))
+      expect(onChange).toHaveBeenCalledTimes(1)
+      const inseridos = onChange.mock.calls[0][0]
+      expect(inseridos.length).toBe(6)
+      expect(inseridos[0]).toMatchObject({ id: 1, nome: 'Aluguel', tipo: 'valor', valor: 600 })
+      expect(inseridos[5]).toMatchObject({ id: 6, nome: 'Gás', tipo: 'valor', valor: 50 })
+      // IDs sequenciais sem colisão
+      const ids = inseridos.map((g: { id: number }) => g.id)
+      expect(new Set(ids).size).toBe(ids.length)
+    })
+  })
 })
