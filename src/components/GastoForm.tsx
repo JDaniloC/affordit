@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Gasto } from '../types'
 import NumericInput from './NumericInput'
 
-type GastoData =
+export type GastoData =
   | { nome: string; tipo: 'valor'; valor: number }
   | { nome: string; tipo: 'pct'; pct: number }
 

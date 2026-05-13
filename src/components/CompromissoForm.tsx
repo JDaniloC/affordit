@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Compromisso } from '../types'
 import NumericInput from './NumericInput'
 
-type CompromissoData = Omit<Compromisso, 'id'>
+export type CompromissoData = Omit<Compromisso, 'id'>
 
 interface Props {
   inicial?: Compromisso

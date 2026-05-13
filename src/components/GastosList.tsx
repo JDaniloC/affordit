@@ -2,11 +2,7 @@ import { useState } from 'react'
 import type { Gasto } from '../types'
 import { valorDoGasto } from '../utils/gastos'
 import GastoCard from './GastoCard'
-import GastoForm from './GastoForm'
-
-type GastoData =
-  | { nome: string; tipo: 'valor'; valor: number }
-  | { nome: string; tipo: 'pct'; pct: number }
+import GastoForm, { type GastoData } from './GastoForm'
 
 interface Props {
   gastos: Gasto[]

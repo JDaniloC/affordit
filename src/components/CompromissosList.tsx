@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Compromisso } from '../types'
 import CompromissoCard from './CompromissoCard'
-import CompromissoForm from './CompromissoForm'
+import CompromissoForm, { type CompromissoData } from './CompromissoForm'
 
 interface Props {
   compromissos: Compromisso[]
@@ -23,12 +23,12 @@ export default function CompromissosList({ compromissos, renda, onChange }: Prop
     return compromissos.reduce((m, c) => Math.max(m, c.id), 0) + 1
   }
 
-  function adicionar(data: Omit<Compromisso, 'id'>) {
+  function adicionar(data: CompromissoData) {
     onChange([...compromissos, { id: nextId(), ...data }])
     setAdicionando(false)
   }
 
-  function editar(id: number, data: Omit<Compromisso, 'id'>) {
+  function editar(id: number, data: CompromissoData) {
     onChange(compromissos.map(c => (c.id === id ? { id, ...data } : c)))
     setEditandoId(null)
   }
