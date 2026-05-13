@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import type { Meta } from '../types'
+import type { Meta, Compromisso } from '../types'
 import {
   calcCronogramaMetas,
   calcCronogramaSaudavel,
@@ -7,6 +7,8 @@ import {
   formatMesAbreviado,
   formatPrazoBR,
 } from '../logic/index'
+import { compromissosToEventos } from '../utils/compromissos'
+import EventosSobraResumo from './EventosSobraResumo'
 import CronogramaCard from './CronogramaCard'
 import MetaForm from './MetaForm'
 import GraficoFila from './GraficoFila'
@@ -19,6 +21,7 @@ interface Props {
   reservaAlvo: number
   metaValor: number
   rendimentoMensalEfetivo: number
+  compromissos: Compromisso[]
   onVoltar: () => void
   onSimularMeta: (m: Meta) => void
 }
@@ -34,6 +37,7 @@ export default function PlanejadorView({
   reservaAlvo,
   metaValor,
   rendimentoMensalEfetivo,
+  compromissos,
   onVoltar,
   onSimularMeta,
 }: Props) {
@@ -44,6 +48,11 @@ export default function PlanejadorView({
   const [atrasoMaxPorMeta, setAtrasoMaxPorMeta] = useState(3)
 
   const headStart = Math.max(0, patrimonio - reservaAlvo)
+
+  const eventosSobra = useMemo(
+    () => compromissosToEventos(compromissos),
+    [compromissos],
+  )
 
   const cronogramaAtual = useMemo(
     () => calcCronogramaMetas(metas, sobraLazerMensal, headStart),
@@ -61,8 +70,9 @@ export default function PlanejadorView({
         pctMaxPatrimonio,
         atrasoMaxPorMeta,
         reservaAlvo,
+        eventosSobra,
       ),
-    [metas, patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, metaValor, pctMaxPatrimonio, atrasoMaxPorMeta, reservaAlvo],
+    [metas, patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, metaValor, pctMaxPatrimonio, atrasoMaxPorMeta, reservaAlvo, eventosSobra],
   )
 
   const cronograma = modoSaudavel ? cronogramaSaudavel : cronogramaAtual
@@ -237,6 +247,10 @@ export default function PlanejadorView({
                     </div>
                   )}
                 </div>
+              )}
+
+              {modoSaudavel && (
+                <EventosSobraResumo eventos={eventosSobra} />
               )}
             </div>
           )}
