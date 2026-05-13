@@ -3263,8 +3263,20 @@ footer {
   letter-spacing: 0.5px;
 }
 .app-shell-chip strong { font-weight: 600; }
-.app-shell-chip.chip-score { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
-.app-shell-chip.chip-score:hover { background: rgba(16, 185, 129, 0.22); }
+
+/* Score chip — cor varia por nível de saúde (alinhado com NIVEL_VISUAL) */
+.app-shell-chip.chip-score-boa { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+.app-shell-chip.chip-score-boa:hover { background: rgba(16, 185, 129, 0.22); }
+.app-shell-chip.chip-score-regular { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35); }
+.app-shell-chip.chip-score-regular:hover { background: rgba(245, 158, 11, 0.22); }
+.app-shell-chip.chip-score-atencao { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); }
+.app-shell-chip.chip-score-atencao:hover { background: rgba(239, 68, 68, 0.22); }
+
+/* Alertas de reserva e sobra — borda + tint sutil quando em zona ruim */
+.app-shell-chip.chip-alerta-atencao { border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.06); }
+.app-shell-chip.chip-alerta-atencao:hover { background: rgba(245, 158, 11, 0.12); }
+.app-shell-chip.chip-alerta-critico { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.08); }
+.app-shell-chip.chip-alerta-critico:hover { background: rgba(239, 68, 68, 0.14); }
 
 .app-shell-main {
   flex: 1;

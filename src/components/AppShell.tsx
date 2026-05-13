@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useHashRoute } from '../hooks/useHashRoute'
 import { AppState, Cenario, Meta } from '../types'
 import Header from './Header'
@@ -7,7 +7,8 @@ import PerfilPage from '../pages/PerfilPage'
 import CenariosPage from '../pages/CenariosPage'
 import CompararPage from '../pages/CompararPage'
 import MetasPage from '../pages/MetasPage'
-import { ScoreSaudeResult } from '../logic/index'
+import { ScoreSaudeResult, calcStatusReserva, calcLazerPct } from '../logic/index'
+import { somaGastos } from '../utils/gastos'
 import { encodeShareUrl } from '../state/share'
 
 interface Props {
@@ -72,6 +73,21 @@ export default function AppShell(props: Props) {
     }
   }, [route, props.state.cenarios, props.state.cenarioAtivoId])
 
+  const alertas = useMemo(() => {
+    const p = props.state.perfil
+    const totalGastos = somaGastos(p)
+    const reservaAlvo = totalGastos * p.reservaMeses
+    const lazerPct = calcLazerPct(p.renda, totalGastos, p.envelopes)
+    const statusSobra: 'ok' | 'atencao' | 'critico' =
+      lazerPct >= 20 ? 'ok' : lazerPct >= 10 ? 'atencao' : 'critico'
+    return {
+      statusReserva: calcStatusReserva(p.patrimonio, reservaAlvo),
+      statusSobra,
+      nivelScore: props.scoreSaude.nivel,
+      reservaAlvo,
+    }
+  }, [props.state.perfil, props.scoreSaude.nivel])
+
   return (
     <div id="app" className="app-shell">
       <Header
@@ -83,6 +99,7 @@ export default function AppShell(props: Props) {
           sobraLazerMensal: props.sobraLazerMensal,
           scorePontuacao: props.scoreSaude.pontuacao,
         }}
+        alertas={alertas}
         mostrarHamburger={route.path === 'cenarios'}
         onToggleSidebar={() => setSidebarAberta(v => !v)}
       />
