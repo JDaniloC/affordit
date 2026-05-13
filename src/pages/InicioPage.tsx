@@ -128,6 +128,21 @@ export default function InicioPage({
             </p>
           )}
         </div>
+        <div className="field inicio-gastos-display">
+          <label>Custo de vida <span className="hint-inline">(opcional, gerencie no perfil)</span></label>
+          {perfil.gastos.length > 0 ? (
+            <p className="hint">
+              <strong>{fmt(totalGastos)}/mês</strong>
+              {' '}({perfil.gastos.length} {perfil.gastos.length === 1 ? 'item' : 'itens'})
+              {' '}<a href="#/perfil">gerenciar →</a>
+            </p>
+          ) : (
+            <p className="hint">
+              Custo de vida não informado.{' '}
+              <a href="#/perfil">adicionar →</a>
+            </p>
+          )}
+        </div>
       </section>
 
       {temItem && (
