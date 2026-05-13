@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PlanejadorView from '../src/components/PlanejadorView'
-import type { Meta } from '../src/types'
+import type { Meta, Compromisso } from '../src/types'
 
 type PlanejadorProps = Parameters<typeof PlanejadorView>[0]
 
@@ -104,5 +104,15 @@ describe('PlanejadorView', () => {
     render(<PlanejadorView {...props({ onVoltar })} />)
     await user.click(screen.getByText(/Voltar ao simulador/i))
     expect(onVoltar).toHaveBeenCalled()
+  })
+
+  it('compromissos com prazo finito propagam para EventosSobraResumo (e para o gráfico, sem crash)', () => {
+    const metas: Meta[] = [{ id: 1, nome: 'TV', valor: 3_000 }]
+    const compromissos: Compromisso[] = [
+      { id: 1, nome: 'Cartão', parcela: 300, prazo: 8 },
+    ]
+    render(<PlanejadorView {...props({ metas, compromissos })} />)
+    expect(screen.getByText(/Sua sobra mensal aumenta/i)).toBeInTheDocument()
+    expect(screen.getByText(/Cartão termina/i)).toBeInTheDocument()
   })
 })

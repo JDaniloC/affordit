@@ -21,6 +21,7 @@ interface Props {
   metaValor: number
   reservaAlvo: number
   cronograma: CronogramaResult
+  eventosSobra?: ReadonlyArray<{ mes: number; deltaSobra: number }>
 }
 
 const fmt = (v: number) =>
@@ -41,7 +42,9 @@ export default function GraficoFila({
   metaValor,
   reservaAlvo,
   cronograma,
+  eventosSobra,
 }: Props) {
+  const eventos = eventosSobra ?? []
   const filaParaTrajetoria = useMemo(
     () =>
       cronograma.agendadas.map((a) => ({
@@ -68,13 +71,14 @@ export default function GraficoFila({
         rendimentoMensalEfetivo,
         120,
         filaParaTrajetoria,
+        eventos,
       )
       const idx = traj.findIndex((v) => v >= metaValor)
       if (idx >= 0) estimativa = Math.max(estimativa, idx + 6)
       else estimativa = 120
     }
     return Math.min(120, Math.max(24, estimativa))
-  }, [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, metaValor, filaParaTrajetoria, ultimaCompraMes])
+  }, [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, metaValor, filaParaTrajetoria, ultimaCompraMes, eventos])
 
   const trajSem = useMemo(
     () =>
@@ -84,8 +88,9 @@ export default function GraficoFila({
         rendimentoMensalEfetivo,
         horizonte,
         [],
+        eventos,
       ),
-    [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, horizonte],
+    [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, horizonte, eventos],
   )
 
   const trajCom = useMemo(
@@ -96,8 +101,9 @@ export default function GraficoFila({
         rendimentoMensalEfetivo,
         horizonte,
         filaParaTrajetoria,
+        eventos,
       ),
-    [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, horizonte, filaParaTrajetoria],
+    [patrimonio, sobraLazerMensal, rendimentoMensalEfetivo, horizonte, filaParaTrajetoria, eventos],
   )
 
   // Piso do plano (Ciclo G): patrimônio inicial crescendo intocado à taxa do plano.

@@ -307,6 +307,7 @@ export default function PlanejadorView({
                     metaValor={metaValor}
                     reservaAlvo={reservaAlvo}
                     cronograma={cronograma}
+                    eventosSobra={eventosSobra}
                   />
                 </>
               )}
