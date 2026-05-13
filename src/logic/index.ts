@@ -585,21 +585,36 @@ export interface AtrasoPatrimonio {
 
 function _trajetoriaPatrimonio(
   patrimonio: number,
-  sobraMensal: number,
+  sobraInicial: number,
   taxaMensal: number,
   deducoes: Array<{ mes: number; valor: number }>,
   horizonte: number,
+  eventosSobra: ReadonlyArray<{ mes: number; deltaSobra: number }> = [],
 ): number[] {
   const r = taxaMensal > 0 ? taxaMensal / 100 : 0
   const dedMap = new Map<number, number>()
   for (const d of deducoes) dedMap.set(d.mes, (dedMap.get(d.mes) ?? 0) + d.valor)
+  // Ordena eventos por mês para acumular delta incrementalmente em O(eventos + horizonte).
+  const eventosOrdenados = [...eventosSobra].sort((a, b) => a.mes - b.mes)
+  let sobraAtual = sobraInicial
+  let proxEvento = 0
+  // Eventos no mês 0 (ou anteriores) são aplicados antes do primeiro mês de capitalização.
+  while (proxEvento < eventosOrdenados.length && eventosOrdenados[proxEvento].mes <= 0) {
+    sobraAtual += eventosOrdenados[proxEvento].deltaSobra
+    proxEvento++
+  }
   // Deduções no mês 0 reduzem imediatamente o patrimônio (compras feitas "agora",
   // pagas com o head start acima da reserva).
   const dedMes0 = dedMap.get(0) ?? 0
   let acumulado = patrimonio - dedMes0
   const traj: number[] = [acumulado]
   for (let t = 1; t <= horizonte; t++) {
-    acumulado = r > 0 ? acumulado * (1 + r) + sobraMensal : acumulado + sobraMensal
+    // Aplicar eventos cuja vigência começa em ou antes de t.
+    while (proxEvento < eventosOrdenados.length && eventosOrdenados[proxEvento].mes <= t) {
+      sobraAtual += eventosOrdenados[proxEvento].deltaSobra
+      proxEvento++
+    }
+    acumulado = r > 0 ? acumulado * (1 + r) + sobraAtual : acumulado + sobraAtual
     const ded = dedMap.get(t)
     if (ded) acumulado -= ded
     traj.push(acumulado)
@@ -727,6 +742,7 @@ function calcTrajetoriaPatrimonio(
   taxaMensal: number,
   meses: number,
   filaAgendada: Array<{ valor: number; mesQueCompleta: number }>,
+  eventosSobra: ReadonlyArray<{ mes: number; deltaSobra: number }> = [],
 ): number[] {
   return _trajetoriaPatrimonio(
     patrimonio,
@@ -734,6 +750,7 @@ function calcTrajetoriaPatrimonio(
     taxaMensal,
     filaAgendada.map((f) => ({ mes: f.mesQueCompleta, valor: f.valor })),
     meses,
+    eventosSobra,
   )
 }
 
