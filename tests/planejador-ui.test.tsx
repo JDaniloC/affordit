@@ -14,6 +14,7 @@ const props = (over: Partial<PlanejadorProps> = {}): PlanejadorProps => ({
   reservaAlvo: 18_000,
   metaValor: 0,
   rendimentoMensalEfetivo: 0,
+  compromissos: [],
   onVoltar: vi.fn(),
   onSimularMeta: vi.fn(),
   ...over,

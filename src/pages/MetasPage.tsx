@@ -24,6 +24,7 @@ export default function MetasPage(props: Props) {
       reservaAlvo={reservaAlvo}
       metaValor={props.perfil.metaValor}
       rendimentoMensalEfetivo={props.rendimentoMensalEfetivo}
+      compromissos={props.perfil.compromissos}
       onVoltar={props.onVoltarParaCenarios}
       onSimularMeta={props.onNavegarParaCenario}
     />
